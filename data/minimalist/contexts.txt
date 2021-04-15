@@ -1,0 +1,7 @@
+Contexts/Optional/Device Capabilities-Connection
+Contexts/Mandatory/Environment
+Device Capabilities/Or/Handle Photos-Sound
+Connection/Alternative/Bad Connection-Good Connection
+Environment/Alternative/In Pocket-Out Pocket
+In Pocket/Alternative/Meeting-Loud
+Out Pocket/Alternative/Night-Day

@@ -1,0 +1,8 @@
+Features/Mandatory/Notifications-MessageType-FriendFeature-ContactList
+Features/Optional/Mode
+Notifications/Alternative/Vibrator-Mute-Alarm
+MessageType/Mandatory/Textual
+MessageType/Optional/Photos-Vocals
+FriendFeature/Mandatory/FriendName
+ContactList/Mandatory/GroupFeature
+Mode/Alternative/Standard-Lite
