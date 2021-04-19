@@ -1,8 +1,8 @@
-Handle Photos-Good Connection-IMPLIES-Photos
-Bad Connection-IMPLIES-Lite
-Good Connection-IMPLIES-Standard
+VideoCard-Good-IMPLIES-Photos
+Bad-IMPLIES-Light
+Good-IMPLIES-Standard
 Meeting-IMPLIES-Mute
 Loud-IMPLIES-Vibrator
 Night-IMPLIES-Mute
-Sound-Day-IMPLIES-Alarm
-Sound-IMPLIES-Vocals
+SoundCard-Day-IMPLIES-Alarm
+SoundCard-IMPLIES-Vocals

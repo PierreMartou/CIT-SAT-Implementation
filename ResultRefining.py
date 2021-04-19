@@ -140,6 +140,7 @@ def orderArray(array, nodes, nPrevTests=0):
     return newArray
     # array = sorted(array, key=lambda testCase: testCaseDistance(testCase, initialTest))
 
+
 """Returns the distance between t1 and t2, only for features/contexts contained in nodes.
 """
 def testDistance(t1, t2, nodes=None):
@@ -160,3 +161,17 @@ def parentConstraint(constraints, root):
     if len(concernedConstraints) == 0:
         return None
     return concernedConstraints
+
+
+def numberOfChangements(testSuite, allContexts, newNodes=None):
+    contexts = allContexts.copy()
+    if newNodes is not None:
+        contexts = [context for context in allContexts if context in newNodes]
+    score = 0
+    prevTestCase = testSuite[0]
+    for testCase in testSuite:
+        score += sum([1 for context in contexts if testCase[context] < 0 and prevTestCase[context] > 0])
+        score += sum([1 for context in contexts if testCase[context] > 0 and prevTestCase[context] < 0])
+        prevTestCase = testCase
+
+    return score

@@ -121,7 +121,7 @@ def discoverCore(solver, valuesForFactors):
     return core
 
 """Main algorithm of this module. Implementation of a greedy CIT-SAT algorithm, and returns a covering array."""
-def CITSAT(systemData, verbose=False, numCandidates=20, testsEvolution = None):
+def CITSAT(systemData, verbose=False, numCandidates=30, testsEvolution = None):
     mySATsolver = SATSolver(systemData)
     valuesForFactors = systemData.getValuesForFactors()
 
@@ -217,7 +217,7 @@ def CITSAT(systemData, verbose=False, numCandidates=20, testsEvolution = None):
             uncoveredTSetCount = len(unCovSets)
             numTests += 1
 
-    if propagate:
+    if propagate and verbose:
         print("EFFICIENCY OF THE PROPAGATION")
         print("PROPAGATIONS : " + str(numPropagation) + " - PROP  NODES : " + str(numPropagatedNodes) + " - AVERAGE : " + str(numPropagatedNodes/max(1,numPropagation)))
     return coveringArray

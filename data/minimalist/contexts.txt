@@ -1,7 +1,7 @@
-Contexts/Optional/Device Capabilities-Connection
-Contexts/Mandatory/Environment
-Device Capabilities/Or/Handle Photos-Sound
-Connection/Alternative/Bad Connection-Good Connection
-Environment/Alternative/In Pocket-Out Pocket
-In Pocket/Alternative/Meeting-Loud
-Out Pocket/Alternative/Night-Day
+Context/Optional/Peripheral-Connection
+Context/Mandatory/Environment
+Peripheral/Or/VideoCard-SoundCard
+Connection/Alternative/Bad-Good
+Environment/Alternative/InPocket-OutPocket
+InPocket/Alternative/Meeting-Loud
+OutPocket/Alternative/Night-Day

@@ -1,9 +1,9 @@
-Contexts/Optional/Device Capabilities-Connection
-Contexts/Mandatory/Environment-Age-Device
-Device Capabilities/Or/Handle Photos-Sound
-Connection/Alternative/Bad Connection-Good Connection
-Environment/Alternative/In Pocket-Out Pocket
+Context/Optional/Peripheral-Connection
+Context/Mandatory/Environment-Age-Device
+Peripheral/Or/VideoCard-SoundCard
+Connection/Alternative/Bad-Good
+Environment/Alternative/InPocket-OutPocket
 Age/Alternative/Teen-Adult
-In Pocket/Alternative/Meeting-Loud
-Out Pocket/Alternative/Night-Day
+InPocket/Alternative/Meeting-Loud
+OutPocket/Alternative/Night-Day
 Device/Alternative/Desktop-Tablet-Smartphone

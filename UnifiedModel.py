@@ -29,7 +29,7 @@ class SystemData:
 
         # We add a 'dummy' because a SAT solver begins at 1
         self.finalNodes = ['dummy', 'TreeRoot'] + list(self.contexts) + list(self.features)
-        self.allConstraints = [('root', 'TreeRoot',[''])]\
+        self.allConstraints = [('root', 'TreeRoot', [''])]\
                               + self.featureConstraints + self.contextConstraints + self.mappingConstraints
 
         # This is the data structure CITSAT.py uses
@@ -73,7 +73,7 @@ class SystemData:
             self.featureConstraints = []
         else:
             f = open(featuresFile, "r").readlines()
-            self.featureConstraints = [('root', 'Features', [])]
+            self.featureConstraints = [('root', 'Feature', [])]
             for line in f:
                 parsedLine = line.replace("\n", "").split("/")
                 newConstraint = (parsedLine[1], parsedLine[0], parsedLine[2].split("-"))
@@ -85,7 +85,7 @@ class SystemData:
             self.contextConstraints = []
         else:
             f = open(contextFile, "r").readlines()
-            self.contextConstraints = [('root', 'Contexts', [])]
+            self.contextConstraints = [('root', 'Context', [])]
             for line in f:
                 parsedLine = line.replace("\n", "").split("/")
                 newConstraint = (parsedLine[1], parsedLine[0], parsedLine[2].split("-"))
