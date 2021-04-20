@@ -39,17 +39,17 @@ def printCoveringArray(arrayCopy, systemData, mode="Normal", writeMode=False, ev
             nTest += 1
     elif mode is "Refined":
         prevTestCase = array[0]
-        printCompleteTestCase(prevTestCase, nTest, contexts, features, cores)
+        printLatexCompleteTestCase(prevTestCase, nTest, contexts, features, cores)
         nTest += 1
         for testCase in array[1:nPrevTests]:
-            printRefinedTestCase(testCase, nTest, contexts, features, prevTestCase, newNodes)
+            printLatexRefinedTestCase(testCase, nTest, contexts, features, prevTestCase, newNodes)
             nTest += 1
             prevTestCase = testCase
         if nPrevTests > 0:
             print("---------------END OF THE REUSED TESTS--------------")
         temp = max(1, nPrevTests)
         for testCase in array[temp:]:
-            printRefinedTestCase(testCase, nTest, contexts, features, prevTestCase)
+            printLatexRefinedTestCase(testCase, nTest, contexts, features, prevTestCase)
             nTest += 1
             prevTestCase = testCase
 
@@ -96,6 +96,46 @@ def printCompleteTestCase(testCase, nTest, contexts, features, cores):
     newLine += str(
         [feature for feature in testCase if testCase[feature] > 0 and feature not in cores and feature in features])
     print(newLine)
+    print('---------------------------------------------------------------------------------------------------------')
+
+def printLatexCompleteTestCase(testCase, nTest, contexts, features, cores):
+    newLine = str(nTest) + ' & '
+    for context in testCase:
+        if testCase[context] > 0 and context in contexts:
+            newLine += context + ', '
+    newLine += ' & & '
+    for feature in testCase:
+        if testCase[feature] > 0 and feature in features:
+            newLine += feature + ', '
+    newLine += ' & \\\\\\hline '
+    print(newLine)
+    print('---------------------------------------------------------------------------------------------------------')
+
+def printLatexRefinedTestCase(testCase, nTest, contexts, features, prevTestCase, newNodes=None):
+    if newNodes is None:
+        newNodes = contexts + features
+
+    newLine = str(nTest) + ' & '
+    for context in testCase:
+        if testCase[context] > 0 and context in contexts and prevTestCase[context] < 0 and context in newNodes:
+            newLine += context + ", "
+
+    newLine += ' & '
+    for context in testCase:
+        if testCase[context] < 0 and context in contexts and prevTestCase[context] > 0 and context in newNodes:
+            newLine += context + ", "
+
+    newLine += ' & '
+    for feature in testCase:
+        if testCase[feature] > 0 and feature in features and prevTestCase[feature] < 0 and feature in newNodes:
+            newLine += feature + ", "
+
+    newLine += ' & '
+    for feature in testCase:
+        if testCase[feature] < 0 and feature in features and prevTestCase[feature] > 0 and feature in newNodes:
+            newLine += feature + ", "
+
+    print(newLine + "\\\\\\hline")
     print('---------------------------------------------------------------------------------------------------------')
 
 def printRefinedTestCase(testCase, nTest, contexts, features, prevTestCase, newNodes=None):
@@ -175,3 +215,13 @@ def numberOfChangements(testSuite, allContexts, newNodes=None):
         prevTestCase = testCase
 
     return score
+
+def alternateOrderArray(array, contexts):
+    prevTest = min(array, key=lambda testCase: sum([1 for c in contexts if testCase[c] > 0]))
+    newArray = [prevTest]
+    array.remove(prevTest)
+    print("TEST OF ALTERNATE ORDERING")
+    t0 = min(array, key=lambda testCase: testDistance(testCase, prevTest, contexts))
+
+    for t in array:
+        print("score : ")

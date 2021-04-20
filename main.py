@@ -17,14 +17,19 @@ def testCITSATData():
 
 def singleRun():
     time1 = time.time()
-    models = "./data/minimalist/"
+    models = "./data/normal_size/"
     s = SystemData(models+'contexts.txt', models+'features.txt', models+'mapping.txt')
     result = CITSAT(s, False, 30)
     printCoveringArray(result, s, "Normal")
     print("================================REFINED MODE=====================================")
-    printCoveringArray(result, s, "Refined", True)
+    printCoveringArray(result, s, "Refined")
     totalTime = time.time() - time1
     print("Computation time : " + str(totalTime) + " seconds")
+    unrefinedCost = numberOfChangements(result, s.getContexts())
+    print("COST UNREFINED : " + str(unrefinedCost))
+    refinedCost = numberOfChangements(orderArray(result, s.getContexts()), s.getContexts())
+    print("COST REFINED : " + str(refinedCost))
+    print("Decrease in cost of : " + str((unrefinedCost - refinedCost)/unrefinedCost))
 
 
 def multipleRuns(iterations):
@@ -114,8 +119,8 @@ def rearrangementMetricsTest(iterations):
 
 # rearrangementMetricsTest(10)
 # anotherTest()
-incrementalRun("feature")
-# singleRun() # Runs a single time the algorithm and displays the results
+# incrementalRun("SAT")
+singleRun() # Runs a single time the algorithm and displays the results
 
 # multipleRuns(3) # Runs multiple times the algorithm, in order to obtain the average computation time
 

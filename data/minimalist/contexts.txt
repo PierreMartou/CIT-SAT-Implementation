@@ -1,7 +1,7 @@
 Context/Optional/Peripheral-Connection
-Context/Mandatory/Environment
-Peripheral/Or/VideoCard-SoundCard
+Context/Mandatory/UserAvailability-Noise
+UserAvailability/Alternative/Occupied-Available
+Noise/Alternative/Quiet-Normal-Loud
+Peripheral/Or/VideoCard-AudioCard
 Connection/Alternative/Bad-Good
-Environment/Alternative/InPocket-OutPocket
-InPocket/Alternative/Meeting-Loud
-OutPocket/Alternative/Night-Day
+Noise/Alternative/Quiet-Normal-Loud

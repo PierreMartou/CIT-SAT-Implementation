@@ -103,25 +103,33 @@ class TestsEvolution:
         timeLeft = segmentLength
         currentScenario = 0
         for testCase in self.prevTests:
-            augmentedTestCase = testCase.copy()
-            baseScenario = assignedScenario[currentTestCase]
-            #for currentScenario in yoyoNumbers[baseScenario:]:
+            print(timeLeft)
+            if timeLeft < 0:
+                currentScenario = (currentScenario + 1)%len(scenarios)
+                timeLeft = segmentLength
+            exploredScenario = currentScenario
+            sat = False
+            while not sat:
+                augmentedTestCase = testCase.copy()
 
-            for f in scenarios[currentScenario]:
-                augmentedTestCase[f] = scenarios[currentScenario][f]
+                for f in scenarios[exploredScenario]:
+                    augmentedTestCase[f] = scenarios[exploredScenario][f]
 
-            if not self.mySolver.checkSAT(augmentedTestCase.values()):
-                print("wtf")
-            if self.mySolver.checkSAT(augmentedTestCase.values()):
-                newAugmentedTests.append(augmentedTestCase)
-                currentScenario = currentScenario
-                if currentScenario != baseScenario:
-                    print("Had to change the base scenario.")
-                    assignedScenario = [a if a != baseScenario else currentScenario for a in assignedScenario]
-                finalAssignedScenario.append(currentScenario)
-                break
+                sat = self.mySolver.checkSAT(augmentedTestCase.values())
 
-            currentTestCase += 1
+                if sat:
+                    newAugmentedTests.append(augmentedTestCase)
+                    if exploredScenario != currentScenario:
+                        currentScenario = exploredScenario
+                        print("Had to change the base scenario.")
+                        timeLeft = segmentLength
+                    else:
+                        timeLeft -= 1
+                    finalAssignedScenario.append(exploredScenario)
+                    currentTestCase += 1
+
+                if not sat:
+                    exploredScenario = (currentScenario + 1)%len(scenarios)
 
         print(finalAssignedScenario)
         return newAugmentedTests

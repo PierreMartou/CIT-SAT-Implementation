@@ -1,9 +1,9 @@
 Context/Optional/Peripheral-Connection
-Context/Mandatory/Environment-Age-Device
-Peripheral/Or/VideoCard-SoundCard
+Context/Mandatory/UserAvailability-Noise-Age-Device
+UserAvailability/Alternative/Occupied-Available
+Noise/Alternative/Quiet-Normal-Loud
+Peripheral/Or/VideoCard-AudioCard
 Connection/Alternative/Bad-Good
-Environment/Alternative/InPocket-OutPocket
+Noise/Alternative/Quiet-Normal-Loud
 Age/Alternative/Teen-Adult
-InPocket/Alternative/Meeting-Loud
-OutPocket/Alternative/Night-Day
 Device/Alternative/Desktop-Tablet-Smartphone
