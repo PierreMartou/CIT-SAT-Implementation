@@ -1,4 +1,4 @@
-Feature/Mandatory/MessageType-Friend-ContactList-Display-Sending-Receiving
+Feature/Mandatory/MessageType-Friend-ContactList-Sending-Receiving
 Feature/Optional/Mode-Notification
 Notification/Alternative/Vibration-Mute-Alarm
 MessageType/Mandatory/Text

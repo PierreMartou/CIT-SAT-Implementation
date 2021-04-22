@@ -1,4 +1,6 @@
 import random
+import time
+
 from SATSolver import SATSolver
 from TestsEvolution import TestsEvolution
 """A set is under the form ((feature1, _), (feature2, _)).
@@ -121,29 +123,36 @@ def discoverCore(solver, valuesForFactors):
     return core
 
 """Main algorithm of this module. Implementation of a greedy CIT-SAT algorithm, and returns a covering array."""
-def CITSAT(systemData, verbose=False, numCandidates=30, testsEvolution = None):
+def CITSAT(systemData, verbose=False, numCandidates=30, testsEvolution = None, veryUglyWay = []):
     mySATsolver = SATSolver(systemData)
     valuesForFactors = systemData.getValuesForFactors()
 
-    core = discoverCore(mySATsolver, valuesForFactors)
     useCore = True
+    noUselessSAT = True
     propagate = True
+    core = {}
+
     if useCore:
+        core = discoverCore(mySATsolver, valuesForFactors)
         for key in core.keys():
             del valuesForFactors[key]
+
     coveringArray = []
     numTests = 0
     numPropagation = 0
     numPropagatedNodes = 0
+    avoidedSATcalls = 0
     # generating T-sets and helpful T-set counts
+    time1 = time.time()
     unCovSets, unCovPairsCount = computeSetToCover(valuesForFactors, mySATsolver)
+    if verbose:
+        print("Computed sets in : " + str(time.time() - time1))
     uncoveredTSetCount = len(unCovSets)
     factors = list(valuesForFactors.keys())
     if verbose:
         print("Finished computing covering sets.")
     nPrevTestCases = 0
     if testsEvolution is not None:
-        testsEvolution.augmentTests()
         for testCase in testsEvolution.getAugmentedTests():
             nPrevTestCases += 1
             numTests += 1
@@ -179,7 +188,10 @@ def CITSAT(systemData, verbose=False, numCandidates=30, testsEvolution = None):
                 augmentedNewTestCase[f] = v
                 sat = mySATsolver is None or mySATsolver.checkSAT(augmentedNewTestCase.values())
                 if not sat:
+                    avoidedSATcalls += 1
                     augmentedNewTestCase[f] = -v
+                    if not noUselessSAT:
+                        sat = mySATsolver.checkSAT(augmentedNewTestCase.values())
 
                 #PROPAGATION PHASE ?
                 if propagate:
@@ -210,13 +222,14 @@ def CITSAT(systemData, verbose=False, numCandidates=30, testsEvolution = None):
         if len(testCasePool) > 0:
             bestTestCase = selectBestTestCase(testCasePool, valuesForFactors, unCovSets)
             coveringArray.append(bestTestCase)
-            if verbose:
-                print("Test case added : ")
-                print(bestTestCase)
+            #if verbose:
+                #print("Test case added : ")
+                # print(bestTestCase)
             unCovSets, unCovPairsCount = updateUnCovSets(bestTestCase, valuesForFactors, unCovSets, unCovPairsCount)
             uncoveredTSetCount = len(unCovSets)
             numTests += 1
-
+    # print(avoidedSATcalls)
+    veryUglyWay.append([numPropagation, numPropagatedNodes])
     if propagate and verbose:
         print("EFFICIENCY OF THE PROPAGATION")
         print("PROPAGATIONS : " + str(numPropagation) + " - PROP  NODES : " + str(numPropagatedNodes) + " - AVERAGE : " + str(numPropagatedNodes/max(1,numPropagation)))

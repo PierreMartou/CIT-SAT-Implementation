@@ -3,7 +3,7 @@
 If mode is "Normal", will return a semi-refined array.
 If mode is "Refined", will refine the completely refined array.
 """
-def printCoveringArray(arrayCopy, systemData, mode="Normal", writeMode=False, evolution = None):
+def printCoveringArray(arrayCopy, systemData, mode="Normal", writeMode=False, evolution = None, order=True):
     print("========== RESULTS =============")
     if len(arrayCopy) == 0:
         print('No test case found.')
@@ -18,7 +18,8 @@ def printCoveringArray(arrayCopy, systemData, mode="Normal", writeMode=False, ev
     array = arrayCopy.copy()
     features = systemData.getFeatures()
     contexts = systemData.getContexts()
-    array = orderArray(array, contexts, nPrevTests)
+    if order:
+        array = orderArray(array, contexts, nPrevTests)
     coreContexts = systemData.getContexts()
     coreFeatures = systemData.getFeatures()
     for testCase in array:
@@ -103,11 +104,11 @@ def printLatexCompleteTestCase(testCase, nTest, contexts, features, cores):
     for context in testCase:
         if testCase[context] > 0 and context in contexts:
             newLine += context + ', '
-    newLine += ' & & '
+    newLine = newLine[:-2] + ' & & '
     for feature in testCase:
         if testCase[feature] > 0 and feature in features:
             newLine += feature + ', '
-    newLine += ' & \\\\\\hline '
+    newLine = newLine[:-2] + ' & \\\\\\hline '
     print(newLine)
     print('---------------------------------------------------------------------------------------------------------')
 
@@ -120,22 +121,22 @@ def printLatexRefinedTestCase(testCase, nTest, contexts, features, prevTestCase,
         if testCase[context] > 0 and context in contexts and prevTestCase[context] < 0 and context in newNodes:
             newLine += context + ", "
 
-    newLine += ' & '
+    newLine = newLine[:-2] + ' & '
     for context in testCase:
         if testCase[context] < 0 and context in contexts and prevTestCase[context] > 0 and context in newNodes:
             newLine += context + ", "
 
-    newLine += ' & '
+    newLine = newLine[:-2] + ' & '
     for feature in testCase:
         if testCase[feature] > 0 and feature in features and prevTestCase[feature] < 0 and feature in newNodes:
             newLine += feature + ", "
 
-    newLine += ' & '
+    newLine = newLine[:-2] + ' & '
     for feature in testCase:
         if testCase[feature] < 0 and feature in features and prevTestCase[feature] > 0 and feature in newNodes:
             newLine += feature + ", "
 
-    print(newLine + "\\\\\\hline")
+    print(newLine[:-2] + "\\\\\\hline")
     print('---------------------------------------------------------------------------------------------------------')
 
 def printRefinedTestCase(testCase, nTest, contexts, features, prevTestCase, newNodes=None):
@@ -206,9 +207,9 @@ def parentConstraint(constraints, root):
 def numberOfChangements(testSuite, allContexts, newNodes=None):
     contexts = allContexts.copy()
     if newNodes is not None:
-        contexts = [context for context in allContexts if context in newNodes]
-    score = 0
+        contexts = newNodes
     prevTestCase = testSuite[0]
+    score = sum([1 for context in contexts if prevTestCase[context] > 0])
     for testCase in testSuite:
         score += sum([1 for context in contexts if testCase[context] < 0 and prevTestCase[context] > 0])
         score += sum([1 for context in contexts if testCase[context] > 0 and prevTestCase[context] < 0])

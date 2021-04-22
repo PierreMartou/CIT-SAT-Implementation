@@ -1,3 +1,4 @@
+import math
 import re
 
 class SystemData:
@@ -105,18 +106,27 @@ class SystemData:
                 #for c in m_contexts:
                 #    self.mappingConstraints.append(('mandatory', c, m_features))
                 for f in m_features:
-                    if len(m_contexts) == 1:  # maybe extend later
-                        if f in activatesFeature:
-                            activatesFeature[f].append(m_contexts[0])
-                        else:
-                            activatesFeature[f] = [m_contexts[0]]
-                    self.mappingConstraints.append(('onePositiveRawClause', f, m_contexts))
-                    if len(m_contexts) > 1:
-                        for c in m_contexts:
-                            self.mappingConstraints.append(('onePositiveRawClause', c, [f]))
+                    if f not in activatesFeature:
+                        activatesFeature[f] = []
+                    activatesFeature[f].append(m_contexts)
 
+                    self.mappingConstraints.append(('onePositiveRawClause', f, m_contexts))
+                    #if len(m_contexts) > 1:
+                    #    for c in m_contexts:
+                    #       self.mappingConstraints.append(('onePositiveRawClause', c, [f]))
             for feature in activatesFeature:
-                self.mappingConstraints.append(('oneNegativeRawClause', feature, activatesFeature[feature]))
+                contextsClauses = [[]]
+                for contexts in activatesFeature[feature]:
+                    newContextsClauses = []
+                    for clause in contextsClauses:
+                        for context in contexts:
+                            clauseCopy = clause.copy()
+                            clauseCopy.append(context)
+                            newContextsClauses.append(clauseCopy)
+                    contextsClauses = newContextsClauses
+                for clause in contextsClauses:
+                    self.mappingConstraints.append(('oneNegativeRawClause', feature, clause))
+
 
 
     def toIndex(self, node):

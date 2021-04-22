@@ -7,21 +7,27 @@ class TestsEvolution:
         self.newNodes = []
         self.augmentedTests = []
         self.prevTests = []
-        self.initDefinedTests(testFile)
         self.systemData = systemData
+        self.initDefinedTests(testFile)
         self.mySolver = SATSolver(systemData)
         self.nPrevTests = 0
         self.mode = mode
+        self.augmentTests()
         # Suppose every previous test is correct
 
     def augmentTests(self):
         actualNodes = self.systemData.getNodes()
         self.newNodes = [node for node in actualNodes if node not in self.prevNodes and node is not "dummy"]
-        self.updateIndexes()
         if self.mode is "SAT":
             self.augmentTestsWithSAT()
-        elif self.mode is "CIT":
-            self.augmentTestsWithCIT()
+        elif self.mode is "1to2" or self.mode is "2to3":
+            self.augmentTestsWithCodedFeat()
+            self.augmentTestsWithSAT()
+        elif type(self.mode) is int:
+            step = self.mode
+            self.mode = "2to3"
+            self.augmentTestsWithCodedFeat(step)
+            self.augmentTestsWithSAT()
         else:
             for line in self.mode:
                 augmentedTests = self.augmentTestsWithConstraints(line)
@@ -48,14 +54,6 @@ class TestsEvolution:
         decipheredMode = line.split("/")
         constraint = decipheredMode[1].lower()
         features = decipheredMode[2].split("-")
-        #pseudo code:
-        # test code/dead features beforehand
-        # create scenarios (CIT)
-        # sort scenarios with sorting algorithm
-        # combine scenarios greedy way until it works
-
-        # scenario algo : per feature relationship, generate a predefined covering array (O(log(n)) in terms of new features
-        # to generate with CIT SAT
         if constraint in ["mandatory"]:
             scenarios.append([self.systemData.toIndex(features[0])])  # not generalized at all
             scenarios.append([-self.systemData.toIndex(features[0])])
@@ -88,53 +86,40 @@ class TestsEvolution:
         #barriers = [n*quartersLength for n in range(1, 2*len(scenarios))]
         #barriers.append(self.nPrevTests)
         yoyoNumbers = list(range(0, len(scenarios))) + list(range(len(scenarios)-2, -1, -1))
-        #assignedScenario = []
-        #lastBarrier = 0
-        #scenarioNumber = 0
-        #for b in barriers:
-        #    for i in range(lastBarrier, round(b)):
-        #        assignedScenario.append(scenarioNumber)
-        #    scenarioNumber += 1
-        #    lastBarrier = round(b)
-        currentTestCase = 0
+        queue = []
+        for s in scenarios:
+            queue.append(s)
         finalAssignedScenario = []
-        # validation; if it doesn't work try to yo-yo and find another; if it doesn't work just SAT.getmodel() and it's a new scenario
         newAugmentedTests = []
-        timeLeft = segmentLength
-        currentScenario = 0
-        for testCase in self.prevTests:
-            print(timeLeft)
-            if timeLeft < 0:
-                currentScenario = (currentScenario + 1)%len(scenarios)
-                timeLeft = segmentLength
-            exploredScenario = currentScenario
-            sat = False
-            while not sat:
-                augmentedTestCase = testCase.copy()
+        timeLeft = round(segmentLength)
 
-                for f in scenarios[exploredScenario]:
-                    augmentedTestCase[f] = scenarios[exploredScenario][f]
+        sat = True
+        currentScenario = queue[0]
+        queue.remove(currentScenario)
+        queue.append(currentScenario)
 
-                sat = self.mySolver.checkSAT(augmentedTestCase.values())
+        while len(self.prevTests) != 0:
+            if timeLeft == 0 or not sat:
+                currentScenario = queue[0]
+                queue.remove(currentScenario)
+                queue.append(currentScenario)
+                timeLeft = round(segmentLength)
 
-                if sat:
-                    newAugmentedTests.append(augmentedTestCase)
-                    if exploredScenario != currentScenario:
-                        currentScenario = exploredScenario
-                        print("Had to change the base scenario.")
-                        timeLeft = segmentLength
-                    else:
-                        timeLeft -= 1
-                    finalAssignedScenario.append(exploredScenario)
-                    currentTestCase += 1
+            augmentedTestCase = self.prevTests[0].copy()
+            for f in currentScenario:
+                augmentedTestCase[f] = currentScenario
 
-                if not sat:
-                    exploredScenario = (currentScenario + 1)%len(scenarios)
+            sat = self.mySolver.checkSAT(augmentedTestCase.values())
 
-        print(finalAssignedScenario)
+            if sat:
+                newAugmentedTests.append(augmentedTestCase)
+                self.prevTests = self.prevTests[1:]
+                timeLeft -= 1
+                finalAssignedScenario.append(currentScenario)
+        # print(finalAssignedScenario)
         return newAugmentedTests
 
-    def updateIndexes(self):
+    def transformToIndexes(self):
         convertedTests = []
         indexForFeatures = self.systemData.getValuesForFactors()
         for testCase in self.prevTests:
@@ -172,14 +157,80 @@ class TestsEvolution:
             print("No previous tests defined.")
             self.prevTests = []
         else:
-            f = open(testFile, "r").readlines()
-            self.prevTests = []
-            self.prevNodes = f[0].split("-")[:-1]
-            self.nPrevTests = len(f[1:])
-            for line in f[1:]:
-                parsedLine = line.split("-")[:-1]
-                self.prevTests = self.prevTests + [parsedLine]
+            if type(testFile) is str:
+                f = open(testFile, "r").readlines()
+                self.prevTests = []
+                self.prevNodes = f[0].split("-")[:-1]
+                self.nPrevTests = len(f[1:])
+                for line in f[1:]:
+                    parsedLine = line.split("-")[:-1]
+                    self.prevTests = self.prevTests + [parsedLine]
+                self.transformToIndexes()
+            else:
+                self.prevNodes = testFile[0][1:].copy()
+                myPrevTests = testFile[1]
+                self.prevTests = myPrevTests.copy()
+                self.nPrevTests = len(testFile[1])
 
-    def augmentTestsWithCIT(self):
-        pass
+                convertedTests = []
+                for testCase in self.prevTests:
+                    convertedTestCase = {}
+                    for node in self.prevNodes:
+                        if testCase[node] > 0:
+                            convertedTestCase[node] = self.systemData.valuesForFactors[node][0]
+                        else:
+                            convertedTestCase[node] = self.systemData.valuesForFactors[node][1]
+                    convertedTests.append(convertedTestCase)
+                self.prevTests = convertedTests
+
+    def augmentTestsWithCodedFeat(self, step=None):
+        scenarios = []
+        if self.mode in "1to2":
+            scenarios.append([self.systemData.toIndex("Match")])
+            scenarios.append([self.systemData.toIndex("Search")])
+        elif self.mode in "2to3":
+            scenarios.append([self.systemData.toIndex("Minimalist")])
+            scenarios.append([self.systemData.toIndex("Minimalist"), self.systemData.toIndex("Keyboard")])
+            scenarios.append([self.systemData.toIndex("Complete"), self.systemData.toIndex("Keyboard")])
+            scenarios.append([self.systemData.toIndex("Complete")])
+            scenarios.append([self.systemData.toIndex("Keyboard")])
+        self.nPrevTests = len(self.prevTests)
+        segmentLength = self.nPrevTests / len(scenarios) / 2
+        queue = []
+        for s in scenarios:
+            queue.append(s)
+        finalAssignedScenario = []
+        newAugmentedTests = []
+
+        if step is None:
+            step = round(segmentLength)
+        timeLeft = step
+        sat = True
+        currentScenario = queue[0]
+        queue.remove(currentScenario)
+        queue.append(currentScenario)
+        while len(self.prevTests) != 0:
+            if timeLeft == 0 or not sat:
+                currentScenario = queue[0]
+                queue.remove(currentScenario)
+                queue.append(currentScenario)
+                timeLeft = step
+
+            augmentedTestCase = self.prevTests[0].copy()
+            if not self.mySolver.checkSAT(augmentedTestCase.values()):
+                print("a test case was found invalid")
+                return newAugmentedTests
+            for f in currentScenario:
+                node = self.systemData.getNodes()[f]
+                augmentedTestCase[node] = f
+
+            sat = self.mySolver.checkSAT(augmentedTestCase.values())
+            if sat:
+                newAugmentedTests.append(augmentedTestCase)
+                self.prevTests = self.prevTests[1:]
+                timeLeft -= 1
+                finalAssignedScenario.append(currentScenario)
+        # print("Assigned scenarios : " + str(finalAssignedScenario))
+        return newAugmentedTests
+
 
