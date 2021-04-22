@@ -63,13 +63,13 @@ def thesisExample():
 def incrementalRun(mode="SAT"):
     time1 = time.time()
     models = ["./data/minimalist/", "./data/normal_size/", "./data/enlarged/"]
-    s2 = SystemData(models[1] + 'contexts.txt', models[1] + 'features.txt', models[1] + 'mapping.txt')
+    s2 = SystemData(models[0] + 'contexts.txt', models[0] + 'features.txt', models[0] + 'mapping.txt')
     result2 = CITSAT(s2, False, 30)
-    s3 = SystemData(models[2] + 'contexts.txt', models[2] + 'features.txt', models[2] + 'mapping.txt')
+    s3 = SystemData(models[1] + 'contexts.txt', models[1] + 'features.txt', models[1] + 'mapping.txt')
     SAT2to3 = TestsEvolution([s2.getNodes(), result2], s3, mode)
 
     result3 = CITSAT(s3, False, 30, SAT2to3)
-    printCoveringArray(result3, s3, "Normal")
+    # printCoveringArray(result3, s3, "Normal")
     modifCost = numberOfChangements(result3[:len(result2)], s2.getContexts(), SAT2to3.getNewNodes())
     print("Modification cost : " + str(modifCost))
     newCreationCost = numberOfChangements(result3[len(result2):], s3.getContexts())
@@ -204,10 +204,13 @@ def evolutionMetrics(iterations):
 # rearrangementMetricsTest(10)
 # anotherTest()
 score = []
-for i in range(1,10):
-    
-    score.append(incrementalRun(i))
-
+repeats = 1
+for i in range(1, 15):
+    tmpScore = 0
+    for iter in range(repeats):
+        tmpScore += incrementalRun(i)
+    score.append(tmpScore/repeats)
+print(score)
 # singleRun() # Runs a single time the algorithm and displays the results
 
 # multipleRuns(3) # Runs multiple times the algorithm, in order to obtain the average computation time

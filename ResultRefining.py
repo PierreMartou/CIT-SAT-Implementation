@@ -208,6 +208,8 @@ def numberOfChangements(testSuite, allContexts, newNodes=None):
     contexts = allContexts.copy()
     if newNodes is not None:
         contexts = newNodes
+    if testSuite is None or len(testSuite) == 0:
+        return 0
     prevTestCase = testSuite[0]
     score = sum([1 for context in contexts if prevTestCase[context] > 0])
     for testCase in testSuite:

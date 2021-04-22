@@ -117,7 +117,7 @@ class TestsEvolution:
                 timeLeft -= 1
                 finalAssignedScenario.append(currentScenario)
         # print(finalAssignedScenario)
-        return newAugmentedTests
+        self.prevTests = newAugmentedTests
 
     def transformToIndexes(self):
         convertedTests = []
@@ -185,6 +185,11 @@ class TestsEvolution:
 
     def augmentTestsWithCodedFeat(self, step=None):
         scenarios = []
+        if type(self.systemData.toIndex("Minimalist")) is int:
+            self.mode = "2to3"
+        else:
+            self.mode = "1to2"
+
         if self.mode in "1to2":
             scenarios.append([self.systemData.toIndex("Match")])
             scenarios.append([self.systemData.toIndex("Search")])
@@ -227,10 +232,10 @@ class TestsEvolution:
             sat = self.mySolver.checkSAT(augmentedTestCase.values())
             if sat:
                 newAugmentedTests.append(augmentedTestCase)
-                self.prevTests = self.prevTests[1:]
+                self.prevTests.remove(self.prevTests[0])
                 timeLeft -= 1
                 finalAssignedScenario.append(currentScenario)
         # print("Assigned scenarios : " + str(finalAssignedScenario))
-        return newAugmentedTests
+        self.prevTests = newAugmentedTests
 
 
