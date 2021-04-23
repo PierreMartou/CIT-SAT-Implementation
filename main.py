@@ -1,11 +1,15 @@
 from CITSAT import CITSAT
-from ResultRefining import printCoveringArray, numberOfChangements, orderArray
+from ResultRefining import printCoveringArray, numberOfChangements, orderArray, addedCreationCost
 from UnifiedModel import SystemData
 import time
 from pysat.solvers import Glucose3
 from TestsEvolution import TestsEvolution
 from SATSolver import SATSolver
 import math
+import numpy as np
+from scipy.interpolate import interp1d
+from scipy import polyval, polyfit
+from matplotlib import pyplot as plt
 """Uses CITSAT() and displays the results.
 """
 def testCITSATData():
@@ -17,13 +21,15 @@ def testCITSATData():
 
 def singleRun():
     time1 = time.time()
-    models = "./data/minimalist/"
+    models = "./data/enlarged/"
     s = SystemData(models+'contexts.txt', models+'features.txt', models+'mapping.txt')
     result = CITSAT(s, False, 30)
     totalTime = time.time() - time1
-    printCoveringArray(result, s, "Normal")
-    print("================================REFINED MODE=====================================")
-    printCoveringArray(result, s, "Refined", writeMode=True)
+    #printCoveringArray(result, s, "Normal", order=False)
+    print("================================ORDER = False=====================================")
+    printCoveringArray(result, s, "Refined", writeMode=True, order=False)
+    print("================================ORDER = True=====================================")
+    printCoveringArray(result, s, "Refined", writeMode=True, order=True)
     print("Computation time : " + str(totalTime) + " seconds")
     unrefinedCost = numberOfChangements(result, s.getContexts())
     print("COST UNREFINED : " + str(unrefinedCost))
@@ -60,34 +66,45 @@ def thesisExample():
         print(testCase)
 
 
-def incrementalRun(mode="SAT"):
-    time1 = time.time()
+def incrementalRun(mode="SAT", verbose=True):
     models = ["./data/minimalist/", "./data/normal_size/", "./data/enlarged/"]
-    s2 = SystemData(models[0] + 'contexts.txt', models[0] + 'features.txt', models[0] + 'mapping.txt')
-    result2 = CITSAT(s2, False, 30)
-    s3 = SystemData(models[1] + 'contexts.txt', models[1] + 'features.txt', models[1] + 'mapping.txt')
-    SAT2to3 = TestsEvolution([s2.getNodes(), result2], s3, mode)
 
-    result3 = CITSAT(s3, False, 30, SAT2to3)
-    # printCoveringArray(result3, s3, "Normal")
-    modifCost = numberOfChangements(result3[:len(result2)], s2.getContexts(), SAT2to3.getNewNodes())
-    print("Modification cost : " + str(modifCost))
-    newCreationCost = numberOfChangements(result3[len(result2):], s3.getContexts())
-    print("New test cost : " + str(newCreationCost))
-    print("Total added cost : " + str(modifCost+newCreationCost))
-    print("Added test cases : " + str(len(result3) - len(result2)))
-    return modifCost+newCreationCost
-    # printCoveringArray(result, s3, "Normal", False, testsEvolution)
-    # print("================================REFINED MODE=====================================")
-    # printCoveringArray(result, s3, "Refined", False, testsEvolution)
-    totalTime = time.time() - time1
-    # print("Computation time : " + str(totalTime) + " seconds")
+    s1 = SystemData(models[0] + 'contexts.txt', models[0] + 'features.txt', models[0] + 'mapping.txt')
+    s2 = SystemData(models[1] + 'contexts.txt', models[1] + 'features.txt', models[1] + 'mapping.txt')
+    s3 = SystemData(models[2] + 'contexts.txt', models[2] + 'features.txt', models[2] + 'mapping.txt')
+
+    result1 = CITSAT(s1)
+    if mode is "SAT":
+        Feat1to2 = TestsEvolution([s1.getNodes(), result1], s2, mode)
+    else:
+        Feat1to2 = TestsEvolution([s1.getNodes(), result1], s2, 6)
+    result2 = CITSAT(s2, False, 30, Feat1to2)
+    Feat2to3 = TestsEvolution([s2.getNodes(), result2], s3, mode)
+    result3 = CITSAT(s3, False, 30, Feat2to3)
+
+    #printCoveringArray(result3, s3, "Refined", evolution=Feat2to3)
+    #printCoveringArray(result3, s3, mode="Refined", evolution=Feat2to3)
+    prevResult = result2
+    prevSystem = s2
+    nextSystem = s3
+    nextResult = result3
+    change = Feat2to3
+    modifCost = numberOfChangements(nextResult[:len(prevResult)], nextSystem.getContexts(), change.getNewNodes())
+
+    newCreationCost = addedCreationCost(nextResult, nextSystem.getContexts(), change.getNumberPrevTests())
+    if verbose:
+        print("Modif : " + str(modifCost) + " - new creation : " + str(newCreationCost) + " - Total : " + str(modifCost+newCreationCost))
+        print("Added test cases : " + str(len(nextResult) - len(prevResult)))
+        print("Real steps taken : " + str(change.getRealSteps()))
+        print("--------------")
+    return [modifCost, (modifCost+newCreationCost), len(nextResult) - len(prevResult), change.getRealSteps()]
 
 
 def myLittleTests():
     g = Glucose3(incr=True)
     g.add_clause([1, 2], [3, 4])
     print(g.propagate([-1, 3]))
+
 
 def anotherTest():
     models = "./data/enlarged/"
@@ -96,6 +113,7 @@ def anotherTest():
     (_, propagated) = mySat.propagate([s.toIndex("AddSystem")])
     for p in propagated:
         print("Propagated node : " + str(s.getNodes()[abs(p)]))
+
 
 def rearrangementMetricsTest(iterations):
     models = ["./data/minimalist/", "./data/normal_size/", "./data/enlarged/"]
@@ -159,14 +177,14 @@ def evolutionMetrics(iterations):
         s3 = SystemData(models[2] + 'contexts.txt', models[2] + 'features.txt', models[2] + 'mapping.txt')
 
         result1 = CITSAT(s1, False, 30)
-        result2 = CITSAT(s2, False, 30)
-        result3 = CITSAT(s3, False, 30)
+        #result2 = CITSAT(s2, False, 30)
+        #result3 = CITSAT(s3, False, 30)
 
-        newCreationCost["Gen2"] = newCreationCost["Gen2"] + numberOfChangements(result2, s2.getContexts())
-        newCreationCost["Gen3"] = newCreationCost["Gen3"] + numberOfChangements(result3, s3.getContexts())
-        sizeScore["Gen2"] = sizeScore["Gen2"] + len(result2)
-        sizeScore["Gen3"] = sizeScore["Gen3"] + len(result3)
-
+        #newCreationCost["Gen2"] = newCreationCost["Gen2"] + numberOfChangements(result2, s2.getContexts())
+        #newCreationCost["Gen3"] = newCreationCost["Gen3"] + numberOfChangements(result3, s3.getContexts())
+        #sizeScore["Gen2"] = sizeScore["Gen2"] + len(result2)
+        #sizeScore["Gen3"] = sizeScore["Gen3"] + len(result3)
+        """
         SAT1to2 = TestsEvolution([s1.getNodes(), result1], s2, mode="SAT")
         result2SAT = CITSAT(s2, False, 30, testsEvolution=SAT1to2)
         SAT2to3 = TestsEvolution([s2.getNodes(), result2SAT], s3, mode="SAT")
@@ -174,20 +192,20 @@ def evolutionMetrics(iterations):
 
         modificationCost["SAT1to2"] = modificationCost["SAT1to2"] + numberOfChangements(result2SAT[:len(result1)], s2.getContexts(), SAT1to2.newNodes)
         modificationCost["SAT2to3"] = modificationCost["SAT2to3"] + numberOfChangements(result3SAT[:len(result2SAT)], s3.getContexts(), SAT2to3.newNodes)
-        newCreationCost["SAT1to2"] = newCreationCost["SAT1to2"] + numberOfChangements(result2SAT[len(result1):], s2.getContexts())
-        newCreationCost["SAT2to3"] = newCreationCost["SAT2to3"] + numberOfChangements(result3SAT[len(result2SAT):], s3.getContexts())
+        newCreationCost["SAT1to2"] = newCreationCost["SAT1to2"] + addedCreationCost(result2SAT, s2.getContexts(), SAT1to2.getNumberPrevTests())
+        newCreationCost["SAT2to3"] = newCreationCost["SAT2to3"] + addedCreationCost(result3SAT, s3.getContexts(), SAT2to3.getNumberPrevTests())
         sizeScore["SAT1to2"] = sizeScore["SAT1to2"] + len(result2SAT)
-        sizeScore["SAT2to3"] = sizeScore["SAT2to3"] + len(result3SAT)
+        sizeScore["SAT2to3"] = sizeScore["SAT2to3"] + len(result3SAT)"""
 
-        Feat1to2 = TestsEvolution([s1.getNodes(), result1], s2, mode="1to2")
+        Feat1to2 = TestsEvolution([s1.getNodes(), result1], s2, mode=4)
         result2Feat = CITSAT(s2, False, 30, testsEvolution=Feat1to2)
-        Feat2to3 = TestsEvolution([s2.getNodes(), result2Feat], s3, mode="2to3")
+        Feat2to3 = TestsEvolution([s2.getNodes(), result2Feat], s3, mode=8)
         result3Feat = CITSAT(s3, False, 30, testsEvolution=Feat2to3)
 
         modificationCost["Feat1to2"] = modificationCost["Feat1to2"] + numberOfChangements(result2Feat[:len(result1)], s2.getContexts(), Feat1to2.newNodes)
         modificationCost["Feat2to3"] = modificationCost["Feat2to3"] + numberOfChangements(result3Feat[:len(result2Feat)], s3.getContexts(), Feat2to3.newNodes)
-        newCreationCost["Feat1to2"] = newCreationCost["Feat1to2"] + numberOfChangements(result2Feat[len(result1):], s2.getContexts())
-        newCreationCost["Feat2to3"] = newCreationCost["Feat2to3"] + numberOfChangements(result3Feat[len(result2Feat):], s3.getContexts())
+        newCreationCost["Feat1to2"] = newCreationCost["Feat1to2"] + addedCreationCost(result2Feat, s2.getContexts(), Feat1to2.getNumberPrevTests())
+        newCreationCost["Feat2to3"] = newCreationCost["Feat2to3"] + addedCreationCost(result3Feat, s3.getContexts(), Feat2to3.getNumberPrevTests())
         sizeScore["Feat1to2"] = sizeScore["Feat1to2"] + len(result2Feat)
         sizeScore["Feat2to3"] = sizeScore["Feat2to3"] + len(result3Feat)
 
@@ -200,19 +218,93 @@ def evolutionMetrics(iterations):
         newLine += str(sizeScore[case] / iterations)
         print(newLine)
 
-# evolutionMetrics(1)
+
+def procedureForIncrementalTesting():
+    modifCost = []
+    totalCosts = []
+    newTests = []
+    realSteps = []
+    repeats = 10
+    for i in range(10, 13):
+        tmpModifCost = 0
+        tmptotalCost = 0
+        tmpNewTest = 0
+        tmpStep = 0
+        for iter in range(repeats):
+            info = incrementalRun(i, False)
+            tmpModifCost += info[0]
+            tmptotalCost += info[1]
+            tmpNewTest += info[2]
+            tmpStep += info[3]
+        totalCosts.append(tmptotalCost / repeats)
+        newTests.append(tmpNewTest / repeats)
+        realSteps.append(tmpStep / repeats)
+        modifCost.append(tmpModifCost / repeats)
+        print("For S = " + str(i) + ", cost : " + str(tmptotalCost / repeats) + ", modif cost : " + str(tmpModifCost / repeats) +  ", newTests : " + str(
+            tmpNewTest / repeats) + ", real steps : " + str(tmpStep / repeats))
+    print("Total costs : " + str(totalCosts))
+    print("Added tests : " + str(newTests))
+    print("Real steps : " + str(realSteps))
+
+def plotAnalysisOfS():
+    y = [59.3, 46.2, 38, 37.5, 37.5, 39.0, 39.4, 35.7, 35.8, 35, 37.4, 38.2, 39.7, 42, 43.5]
+    x = np.linspace(1, len(y)+1, num=len(y), endpoint=True)
+    #f = interp1d(x, y, kind='cubic')
+    xnew = np.linspace(1, len(y)+1, num=41, endpoint=True)
+    param = polyfit(x, y, 2)
+    f = polyval(param, xnew)
+
+    font = {'family': 'normal',
+            'size': 16}
+    plt.rc('font', **font)
+
+    plt.plot(x, y, 'o', xnew, f, '--')
+    plt.legend(['Data', 'Least square approximation'])
+    plt.title('Total cost')
+    plt.xlabel('S')
+    plt.ylabel('Cost')
+    plt.savefig("totalCost.pdf")
+    plt.show()
+
+    y = [5.0, 5.2, 4.6, 5.3, 5.7, 5.2, 6.1, 6.0, 5.9, 5.5, 6.4, 6.5, 7.2, 7.4, 7.4]
+    x = np.linspace(1, len(y) + 1, num=len(y), endpoint=True)
+    xnew = np.linspace(1, len(y) + 1, num=41, endpoint=True)
+    param = polyfit(x, y, 2)
+    f = polyval(param, xnew)
+    plt.plot(x, y, 'o', xnew, f, '--')
+    plt.legend(['Data', 'Least square approximation'])
+    plt.title('Added tests')
+    plt.xlabel('S')
+    plt.ylabel('Number of new tests')
+    plt.savefig("addedTests.pdf")
+    plt.show()
+
+    y = [1.0, 1.8, 2.4, 2.9, 3.3, 3.8, 4.3, 4.325, 4.7, 5.5, 4.9, 6, 6.2, 5.4]
+    x = np.linspace(1, len(y) + 1, num=len(y), endpoint=True)
+    xnew = np.linspace(1, len(y) + 1, num=41, endpoint=True)
+    param = polyfit(x, y, 2)
+    f = polyval(param, xnew)
+    plt.plot(x, y, 'o', xnew, f, '--', x, x, '-')
+    plt.legend(['Data', 'Least square approximation', 'Theoretical'])
+    plt.title('Test cases/scenario')
+    plt.xlabel('S')
+    plt.ylabel('Test case/scenario')
+    plt.savefig("testcase-scenario.pdf")
+    plt.show()
+
+
+# evolutionMetrics(10)
 # rearrangementMetricsTest(10)
 # anotherTest()
-score = []
-repeats = 1
-for i in range(1, 15):
-    tmpScore = 0
-    for iter in range(repeats):
-        tmpScore += incrementalRun(i)
-    score.append(tmpScore/repeats)
-print(score)
+
 # singleRun() # Runs a single time the algorithm and displays the results
 
-# multipleRuns(3) # Runs multiple times the algorithm, in order to obtain the average computation time
+# procedureForIncrementalTesting()
 
-# thesisExample() # To illustrate covering array, we used this example
+plotAnalysisOfS()
+
+# multipleRuns(3)
+
+# thesisExample()
+
+

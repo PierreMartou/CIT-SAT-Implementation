@@ -12,8 +12,8 @@ class TestsEvolution:
         self.mySolver = SATSolver(systemData)
         self.nPrevTests = 0
         self.mode = mode
+        self.realSteps = 0
         self.augmentTests()
-        # Suppose every previous test is correct
 
     def augmentTests(self):
         actualNodes = self.systemData.getNodes()
@@ -25,7 +25,6 @@ class TestsEvolution:
             self.augmentTestsWithSAT()
         elif type(self.mode) is int:
             step = self.mode
-            self.mode = "2to3"
             self.augmentTestsWithCodedFeat(step)
             self.augmentTestsWithSAT()
         else:
@@ -50,6 +49,7 @@ class TestsEvolution:
         self.nPrevTests = nTests
 
     def augmentTestsWithConstraints(self, line):
+        print("NEVER GO HERE")
         scenarios = []
         decipheredMode = line.split("/")
         constraint = decipheredMode[1].lower()
@@ -194,28 +194,37 @@ class TestsEvolution:
             scenarios.append([self.systemData.toIndex("Match")])
             scenarios.append([self.systemData.toIndex("Search")])
         elif self.mode in "2to3":
-            scenarios.append([self.systemData.toIndex("Minimalist")])
-            scenarios.append([self.systemData.toIndex("Minimalist"), self.systemData.toIndex("Keyboard")])
-            scenarios.append([self.systemData.toIndex("Complete"), self.systemData.toIndex("Keyboard")])
-            scenarios.append([self.systemData.toIndex("Complete")])
-            scenarios.append([self.systemData.toIndex("Keyboard")])
+            #scenarios.append([self.systemData.toIndex("Keyboard")])
+            #scenarios.append([self.systemData.toIndex("Complete")])
+            #scenarios.append([self.systemData.toIndex("Complete"), self.systemData.toIndex("Keyboard")])
+            #scenarios.append([self.systemData.toIndex("Minimalist"), self.systemData.toIndex("Keyboard")])
+            #scenarios.append([self.systemData.toIndex("Minimalist")])
+            scenarios.append([self.systemData.toIndex("Smartphone")])
+            scenarios.append([self.systemData.toIndex("Tablet")])
+            scenarios.append([self.systemData.toIndex("Desktop")])
+        random.shuffle(scenarios)
         self.nPrevTests = len(self.prevTests)
-        segmentLength = self.nPrevTests / len(scenarios) / 2
         queue = []
         for s in scenarios:
             queue.append(s)
         finalAssignedScenario = []
         newAugmentedTests = []
-
         if step is None:
-            step = round(segmentLength)
+            step = round(self.nPrevTests / len(scenarios))
         timeLeft = step
         sat = True
         currentScenario = queue[0]
         queue.remove(currentScenario)
         queue.append(currentScenario)
+        self.realSteps = 0
+        switches = 0
+        extendingUnwillingly = False
+        prevScenario = None
         while len(self.prevTests) != 0:
-            if timeLeft == 0 or not sat:
+            if timeLeft == 0 or not sat or extendingUnwillingly:
+                if timeLeft != step:
+                    switches += 1
+                    self.realSteps += (step - timeLeft)
                 currentScenario = queue[0]
                 queue.remove(currentScenario)
                 queue.append(currentScenario)
@@ -238,4 +247,23 @@ class TestsEvolution:
         # print("Assigned scenarios : " + str(finalAssignedScenario))
         self.prevTests = newAugmentedTests
 
+        if switches == 0:
+            switches+=1
+        self.realSteps = self.realSteps/switches
 
+        self.realSteps = 0
+        switchOfContext = 1
+        nbScenario = 1
+        prevScen = finalAssignedScenario[0]
+        for s in finalAssignedScenario:
+            if s != prevScen:
+                self.realSteps = self.realSteps + nbScenario
+                switchOfContext += 1
+                nbScenario = 1
+                prevScen = s
+            else:
+                nbScenario += 1
+        self.realSteps = self.realSteps/switchOfContext
+
+    def getRealSteps(self):
+        return self.realSteps

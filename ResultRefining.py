@@ -40,7 +40,7 @@ def printCoveringArray(arrayCopy, systemData, mode="Normal", writeMode=False, ev
             nTest += 1
     elif mode is "Refined":
         prevTestCase = array[0]
-        printLatexCompleteTestCase(prevTestCase, nTest, contexts, features, cores)
+        printLatexCompleteTestCase(prevTestCase, nTest, contexts, features, cores, newNodes)
         nTest += 1
         for testCase in array[1:nPrevTests]:
             printLatexRefinedTestCase(testCase, nTest, contexts, features, prevTestCase, newNodes)
@@ -56,13 +56,9 @@ def printCoveringArray(arrayCopy, systemData, mode="Normal", writeMode=False, ev
 
         if nPrevTests > 0:
             print("NUMBER OF REUSED TESTS/TOTAL TESTS : " + str(nPrevTests) + " / " + str(nTest-1))
-            modif = sum([1 for n in array[0] if array[0][n] > 0 and n in newNodes])
-            prevTestCase = array[0]
-            for testCase in array[1:nPrevTests]:
-                modif += sum([1 for n in testCase if testCase[n] > 0 and prevTestCase[n] < 0 and n in newNodes])
-                modif += sum([1 for n in testCase if testCase[n] < 0 and prevTestCase[n] > 0 and n in newNodes])
-                prevTestCase = testCase
+            modif = numberOfChangements(array[:nPrevTests], contexts, newNodes)
             print("MODIFICATIONS ON PREVIOUS TESTS : " + str(modif))
+            print("TOTAL COST : " + str(modif + numberOfChangements(array[nPrevTests:], contexts)))
 
     elif mode == "DataCollection":
         print("NUMBER OF REUSED TESTS/TOTAL TESTS : " + str(nPrevTests) + " / " + str(nTest - 1))
@@ -99,45 +95,60 @@ def printCompleteTestCase(testCase, nTest, contexts, features, cores):
     print(newLine)
     print('---------------------------------------------------------------------------------------------------------')
 
-def printLatexCompleteTestCase(testCase, nTest, contexts, features, cores):
+def printLatexCompleteTestCase(testCase, nTest, contexts, features, cores, newNodes = None):
+    if newNodes is None or len(newNodes) == 0:
+        newNodes = contexts + features
     newLine = str(nTest) + ' & '
     for context in testCase:
-        if testCase[context] > 0 and context in contexts:
+        if testCase[context] > 0 and context in contexts and context in newNodes:
             newLine += context + ', '
     newLine = newLine[:-2] + ' & & '
     for feature in testCase:
-        if testCase[feature] > 0 and feature in features:
+        if testCase[feature] > 0 and feature in features and feature in newNodes:
             newLine += feature + ', '
     newLine = newLine[:-2] + ' & \\\\\\hline '
     print(newLine)
-    print('---------------------------------------------------------------------------------------------------------')
 
 def printLatexRefinedTestCase(testCase, nTest, contexts, features, prevTestCase, newNodes=None):
     if newNodes is None:
         newNodes = contexts + features
-
+    added = False
     newLine = str(nTest) + ' & '
     for context in testCase:
         if testCase[context] > 0 and context in contexts and prevTestCase[context] < 0 and context in newNodes:
             newLine += context + ", "
+            added = True
 
-    newLine = newLine[:-2] + ' & '
+    if added:
+        newLine = newLine[:-2]
+    added = False
+    newLine += ' & '
     for context in testCase:
         if testCase[context] < 0 and context in contexts and prevTestCase[context] > 0 and context in newNodes:
             newLine += context + ", "
+            added = True
 
-    newLine = newLine[:-2] + ' & '
+    if added:
+        newLine = newLine[:-2]
+    added = False
+    newLine += ' & '
     for feature in testCase:
         if testCase[feature] > 0 and feature in features and prevTestCase[feature] < 0 and feature in newNodes:
             newLine += feature + ", "
+            added = True
 
-    newLine = newLine[:-2] + ' & '
+    if added:
+        newLine = newLine[:-2]
+    added = False
+    newLine += ' & '
     for feature in testCase:
         if testCase[feature] < 0 and feature in features and prevTestCase[feature] > 0 and feature in newNodes:
             newLine += feature + ", "
-
-    print(newLine[:-2] + "\\\\\\hline")
-    print('---------------------------------------------------------------------------------------------------------')
+            added = True
+    if added:
+        newLine = newLine[:-2]
+    added = False
+    print(newLine + "\\\\\\hline")
 
 def printRefinedTestCase(testCase, nTest, contexts, features, prevTestCase, newNodes=None):
     if newNodes is None:
@@ -160,10 +171,12 @@ def printRefinedTestCase(testCase, nTest, contexts, features, prevTestCase, newN
 
 """ Sorts the array thanks to the distance definition in testDistance.
 """
-def orderArray(array, nodes, nPrevTests=0):
+def orderArray(givenArray, nodes, nPrevTests=0):
+    array = givenArray.copy()
     prevTest = []
     newArray = []
     prevTest = []
+    previousTestNumber = []
     if nPrevTests > 0:
         for i in range(nPrevTests):
             prevTest = array[0]
@@ -207,7 +220,7 @@ def parentConstraint(constraints, root):
 def numberOfChangements(testSuite, allContexts, newNodes=None):
     contexts = allContexts.copy()
     if newNodes is not None:
-        contexts = newNodes
+        contexts = [contxt for contxt in contexts if contxt in newNodes]
     if testSuite is None or len(testSuite) == 0:
         return 0
     prevTestCase = testSuite[0]
@@ -219,12 +232,13 @@ def numberOfChangements(testSuite, allContexts, newNodes=None):
 
     return score
 
-def alternateOrderArray(array, contexts):
-    prevTest = min(array, key=lambda testCase: sum([1 for c in contexts if testCase[c] > 0]))
-    newArray = [prevTest]
-    array.remove(prevTest)
-    print("TEST OF ALTERNATE ORDERING")
-    t0 = min(array, key=lambda testCase: testDistance(testCase, prevTest, contexts))
+def addedCreationCost(array, contexts, nPrevTests):
+    testSuite = orderArray(array, contexts, nPrevTests)
+    prevTestCase = testSuite[nPrevTests-1]
+    score = 0
+    for testCase in testSuite[nPrevTests:]:
+        score += sum([1 for context in contexts if testCase[context] < 0 and prevTestCase[context] > 0])
+        score += sum([1 for context in contexts if testCase[context] > 0 and prevTestCase[context] < 0])
+        prevTestCase = testCase
 
-    for t in array:
-        print("score : ")
+    return score

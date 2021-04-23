@@ -162,6 +162,7 @@ def CITSAT(systemData, verbose=False, numCandidates=30, testsEvolution = None, v
                 print(testCase)
             unCovSets, unCovPairsCount = updateUnCovSets(testCase, valuesForFactors, unCovSets, unCovPairsCount)
             uncoveredTSetCount = len(unCovSets)
+        # print("Number of pairs : " + str(uncoveredTSetCount))
 
     while uncoveredTSetCount > 0:
         testCasePool = []
