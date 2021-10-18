@@ -7,7 +7,6 @@ from TestsEvolution import TestsEvolution
 from SATSolver import SATSolver
 import math
 import numpy as np
-from scipy.interpolate import interp1d
 from scipy import polyval, polyfit
 from matplotlib import pyplot as plt
 """Uses CITSAT() and displays the results.
@@ -27,9 +26,9 @@ def singleRun():
     totalTime = time.time() - time1
     #printCoveringArray(result, s, "Normal", order=False)
     print("================================ORDER = False=====================================")
-    printCoveringArray(result, s, "Refined", writeMode=True, order=False)
+    printCoveringArray(result, s, "Refined", writeMode=False, order=False)
     print("================================ORDER = True=====================================")
-    printCoveringArray(result, s, "Refined", writeMode=True, order=True)
+    printCoveringArray(result, s, "Refined", writeMode=False, order=True)
     print("Computation time : " + str(totalTime) + " seconds")
     unrefinedCost = numberOfChangements(result, s.getContexts())
     print("COST UNREFINED : " + str(unrefinedCost))
@@ -262,7 +261,7 @@ def plotAnalysisOfS():
     plt.legend(['Data', 'Least square approximation'])
     plt.title('Total cost')
     plt.xlabel('S')
-    plt.ylabel('Cost')
+    plt.ylabel('Total cost')
     plt.savefig("totalCost.pdf")
     plt.show()
 
@@ -286,9 +285,9 @@ def plotAnalysisOfS():
     f = polyval(param, xnew)
     plt.plot(x, y, 'o', xnew, f, '--', x, x, '-')
     plt.legend(['Data', 'Least square approximation', 'Theoretical'])
-    plt.title('Test cases/scenario')
+    plt.title('Test scenarios/scenario')
     plt.xlabel('S')
-    plt.ylabel('Test case/scenario')
+    plt.ylabel('updated scenario/partial scenario')
     plt.savefig("testcase-scenario.pdf")
     plt.show()
 
@@ -297,11 +296,11 @@ def plotAnalysisOfS():
 # rearrangementMetricsTest(10)
 # anotherTest()
 
-# singleRun() # Runs a single time the algorithm and displays the results
+singleRun() # Runs a single time the algorithm and displays the results
 
 # procedureForIncrementalTesting()
 
-plotAnalysisOfS()
+# plotAnalysisOfS()
 
 # multipleRuns(3)
 
