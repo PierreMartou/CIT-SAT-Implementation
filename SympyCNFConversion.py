@@ -7,4 +7,5 @@ def test():
     array = symbols("x1:"+str(len(array)+1))
     print(array)
 
+
 test()

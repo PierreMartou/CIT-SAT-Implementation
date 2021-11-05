@@ -1,13 +1,14 @@
 from CITSAT import CITSAT
 from ResultRefining import printCoveringArray, numberOfChangements, orderArray, addedCreationCost
-from UnifiedModel import SystemData
+from SystemData import SystemData
 import time
 from pysat.solvers import Glucose3
 from TestsEvolution import TestsEvolution
 from SATSolver import SATSolver
 import math
 import numpy as np
-from scipy import polyval, polyfit
+from numpy import polyval, polyfit
+# was scipy instead of numpy
 from matplotlib import pyplot as plt
 """Uses CITSAT() and displays the results.
 """

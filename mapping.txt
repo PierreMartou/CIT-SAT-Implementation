@@ -1,15 +1,15 @@
-Adult-IMPLIES-Search-Description
+Occupied-IMPLIES-Mute
+Quiet-IMPLIES-Mute
+Normal-Available-AudioCard-IMPLIES-Alarm
+Loud-Available-IMPLIES-Vibration
+AudioCard-IMPLIES-Vocal
+VideoCard-Good-IMPLIES-Photo
+Good-IMPLIES-Standard
+Bad-IMPLIES-Light
 Teen-IMPLIES-Match-ProfilePicture
-Handle Photos-Good Connection-IMPLIES-Photos
-Bad Connection-IMPLIES-Lite
-Good Connection-IMPLIES-Standard
-Meeting-IMPLIES-Mute
-Loud-IMPLIES-Vibrator
-Night-IMPLIES-Mute
-Sound-Day-IMPLIES-Alarm
-Sound-IMPLIES-Vocals
-Desktop-IMPLIES-Complete
+Adult-IMPLIES-Search-Description
+Desktop-VideoCard-IMPLIES-Complete
 Smartphone-IMPLIES-Minimalist
 Smartphone-IMPLIES-Keyboard
 Tablet-IMPLIES-Keyboard
-Tablet-IMPLIES-Complete
+Tablet-VideoCard-IMPLIES-Complete

@@ -34,23 +34,26 @@ def printCoveringArray(arrayCopy, systemData, mode="Normal", writeMode=False, ev
     cores = coreFeatures + coreContexts + ['TreeRoot']
 
     nTest = 1
-    if mode is "Normal":
+    if mode == "Normal":
         for testCase in array:
             printCompleteTestCase(testCase, nTest, contexts, features, cores)
             nTest += 1
-    elif mode is "Refined":
+    elif mode == "Refined":
         prevTestCase = array[0]
-        printLatexCompleteTestCase(prevTestCase, nTest, contexts, features, cores, newNodes)
+        # printLatexCompleteTestCase(prevTestCase, nTest, contexts, features, cores, newNodes)
+        printCompleteTestCase(prevTestCase, nTest, contexts, features, cores)
         nTest += 1
         for testCase in array[1:nPrevTests]:
-            printLatexRefinedTestCase(testCase, nTest, contexts, features, prevTestCase, newNodes)
+            # printLatexRefinedTestCase(testCase, nTest, contexts, features, prevTestCase, newNodes)
+            printRefinedTestCase(testCase, nTest, contexts, features, prevTestCase, newNodes)
             nTest += 1
             prevTestCase = testCase
         if nPrevTests > 0:
             print("---------------END OF THE REUSED TESTS--------------")
         temp = max(1, nPrevTests)
         for testCase in array[temp:]:
-            printLatexRefinedTestCase(testCase, nTest, contexts, features, prevTestCase)
+            # printLatexRefinedTestCase(testCase, nTest, contexts, features, prevTestCase)
+            printRefinedTestCase(testCase, nTest, contexts, features, prevTestCase)
             nTest += 1
             prevTestCase = testCase
 

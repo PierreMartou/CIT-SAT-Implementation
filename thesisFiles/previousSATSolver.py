@@ -1,5 +1,5 @@
 from pysat.solvers import Glucose3
-from ConstraintsToCNF import *
+from ManualCNFConversion import *
 from ResultRefining import orderNodes
 # For each constraint in a feature model, defines corresponding constraints for a SAT solver.
 

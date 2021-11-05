@@ -17,10 +17,10 @@ class TestsEvolution:
 
     def augmentTests(self):
         actualNodes = self.systemData.getNodes()
-        self.newNodes = [node for node in actualNodes if node not in self.prevNodes and node is not "dummy"]
-        if self.mode is "SAT":
+        self.newNodes = [node for node in actualNodes if node not in self.prevNodes and node != "dummy"]
+        if self.mode == "SAT":
             self.augmentTestsWithSAT()
-        elif self.mode is "1to2" or self.mode is "2to3":
+        elif self.mode == "1to2" or self.mode == "2to3":
             self.augmentTestsWithCodedFeat()
             self.augmentTestsWithSAT()
         elif type(self.mode) is int:
@@ -49,7 +49,7 @@ class TestsEvolution:
         self.nPrevTests = nTests
 
     def augmentTestsWithConstraints(self, line):
-        print("NEVER GO HERE")
+        # print("NEVER GO HERE")
         scenarios = []
         decipheredMode = line.split("/")
         constraint = decipheredMode[1].lower()

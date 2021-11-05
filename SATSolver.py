@@ -1,5 +1,5 @@
 from pysat.solvers import Glucose3
-from ConstraintsToCNF import *
+from ManualCNFConversion import *
 
 
 class SATSolver:

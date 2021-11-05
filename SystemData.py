@@ -1,5 +1,5 @@
-import math
 import re
+
 
 class SystemData:
     def __init__(self, contextsFile=None, featuresFile=None, mappingFile=None):
@@ -48,11 +48,11 @@ class SystemData:
             f = open(featureFile, "r").readlines()
             self.features = set()
             for line in f:
-                index =0
+                index = 0
                 for feature in re.split("[\-/]", line):
                     if index != 1:
                         self.features.add(feature.replace("\n", ""))
-                    index+=1
+                    index += 1
 
     def initContexts(self, contextsFile):
         if contextsFile is None:
