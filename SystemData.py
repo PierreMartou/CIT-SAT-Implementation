@@ -101,10 +101,14 @@ class SystemData:
             activatesFeature = {}
             for line in f:
                 line = line.rstrip("\n")
-                m_features = line.split('-IMPLIES-')[1].split('-')
-                m_contexts = line.split('-IMPLIES-')[0].split('-')
+                if len(line.split('-ACTIVATES-')) < 2:
+                    print("Error reading a file in the mapping: missing keyword ACTIVATES in line : " + str(line))
+
+                m_features = line.split('-ACTIVATES-')[1].split('-')
+                m_contexts = line.split('-ACTIVATES-')[0].split('-')
                 #for c in m_contexts:
                 #    self.mappingConstraints.append(('mandatory', c, m_features))
+
                 for f in m_features:
                     if f not in activatesFeature:
                         activatesFeature[f] = []
