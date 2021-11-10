@@ -1,10 +1,11 @@
 
+
 """Refines the received array. SystemData is used to retrieve the list of contexts/features.
 If mode is "Normal", will return a semi-refined array.
 If mode is "Refined", will refine the completely refined array.
 """
-def printCoveringArray(arrayCopy, systemData, mode="Normal", writeMode=False, evolution = None, order=True):
-    print("========== RESULTS =============")
+def printCoveringArray(arrayCopy, systemData, mode="Normal", writeMode=False, evolution = None, order=True, latex=False):
+    # print("========== RESULTS =============")
     if len(arrayCopy) == 0:
         print('No test case found.')
         return
@@ -40,20 +41,26 @@ def printCoveringArray(arrayCopy, systemData, mode="Normal", writeMode=False, ev
             nTest += 1
     elif mode == "Refined":
         prevTestCase = array[0]
-        # printLatexCompleteTestCase(prevTestCase, nTest, contexts, features, cores, newNodes)
-        printCompleteTestCase(prevTestCase, nTest, contexts, features, cores)
+        if latex:
+            printLatexCompleteTestCase(prevTestCase, nTest, contexts, features, cores, newNodes)
+        else:
+            printCompleteTestCase(prevTestCase, nTest, contexts, features, cores)
         nTest += 1
         for testCase in array[1:nPrevTests]:
-            # printLatexRefinedTestCase(testCase, nTest, contexts, features, prevTestCase, newNodes)
-            printRefinedTestCase(testCase, nTest, contexts, features, prevTestCase, newNodes)
+            if latex:
+                printLatexRefinedTestCase(testCase, nTest, contexts, features, prevTestCase, newNodes)
+            else:
+                printRefinedTestCase(testCase, nTest, contexts, features, prevTestCase, newNodes)
             nTest += 1
             prevTestCase = testCase
         if nPrevTests > 0:
             print("---------------END OF THE REUSED TESTS--------------")
         temp = max(1, nPrevTests)
         for testCase in array[temp:]:
-            # printLatexRefinedTestCase(testCase, nTest, contexts, features, prevTestCase)
-            printRefinedTestCase(testCase, nTest, contexts, features, prevTestCase)
+            if latex:
+                printLatexRefinedTestCase(testCase, nTest, contexts, features, prevTestCase)
+            else:
+                printRefinedTestCase(testCase, nTest, contexts, features, prevTestCase)
             nTest += 1
             prevTestCase = testCase
 

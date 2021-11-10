@@ -13,7 +13,12 @@ totalTime = time.time() - time1
 # print("================================ORDER = False=====================================")
 # printCoveringArray(result, s, "Refined", writeMode=False, order=False)
 # print("================================ORDER = True=====================================")
-printCoveringArray(result, s, "Refined", writeMode=False, order=True)
+print("==================== To create a Latex table ====================")
+printCoveringArray(result, s, mode="Refined", latex=True)
+print("\n")
+print("==================== Normal version ====================")
+printCoveringArray(result, s, mode="Refined", latex=False)
+
 print("Computation time : " + str(totalTime) + " seconds")
 unrefinedCost = numberOfChangements(result, s.getContexts())
 # print("COST UNREFINED : " + str(unrefinedCost))

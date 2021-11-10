@@ -24,12 +24,20 @@ class SystemData:
         self.contextConstraints = []
         self.initContextConstraint(contextsFile)
 
+        self.finalNodes = ['dummy', 'TreeRoot'] + list(self.contexts) + list(self.features)
+
+        if "Feature" not in self.finalNodes or "Context" not in self.finalNodes:
+            print("WARNING: the root of your feature model should always be \"Feature\". The root of your context model should always be \"Context\".")
+
+        for feature in self.features:
+            if feature in self.contexts:
+                print("WARNING: the feature \"" + feature + "\" is also in the context model. You can't have a feature and a context with the exact same names.")
+
         # Read mapping file
         self.mappingConstraints = []
         self.initMapping(mappingFile)
 
         # We add a 'dummy' because a SAT solver begins at 1
-        self.finalNodes = ['dummy', 'TreeRoot'] + list(self.contexts) + list(self.features)
         self.allConstraints = [('root', 'TreeRoot', [''])]\
                               + self.featureConstraints + self.contextConstraints + self.mappingConstraints
 
@@ -50,6 +58,8 @@ class SystemData:
             for line in f:
                 index = 0
                 for feature in re.split("[\-/]", line):
+                    if index == 1 and feature.lower() not in ["mandatory", "optional", "or", "alternative"]:
+                        print("WARNING: In your feature model file, line: " + line + "does not seem to define a relationship.")
                     if index != 1:
                         self.features.add(feature.replace("\n", ""))
                     index += 1
@@ -64,6 +74,8 @@ class SystemData:
             for line in f:
                 index = 0
                 for context in re.split("[\-/]", line):
+                    if index == 1 and context.lower() not in ["mandatory", "optional", "or", "alternative"]:
+                        print("WARNING: In your context model file, line: " + line + "\"does not seem to define a relationship.")
                     if index != 1:
                         self.contexts.add(context.replace("\n", ""))
                     index += 1
@@ -108,6 +120,19 @@ class SystemData:
                 m_contexts = line.split('-ACTIVATES-')[0].split('-')
                 #for c in m_contexts:
                 #    self.mappingConstraints.append(('mandatory', c, m_features))
+
+                # Verification that the mapping's features and contexts do exist.
+                for feature in m_features:
+                    if feature not in self.finalNodes:
+                        print("WARNING: In the mapping, feature \"" + feature + "\" was not found in the feature model.")
+                        print("Be careful to typos between both files (it is case sensitive).")
+                        print("Be careful to spaces, especially at the end of a line containing this feature, both in the feature and mapping files.")
+
+                for context in m_contexts:
+                    if context not in self.finalNodes:
+                        print("WARNING: In the mapping, context \"" + context + "\" was not found in the context model.")
+                        print("Be careful to typos between both files (it is case sensitive).")
+                        print("Be careful to spaces, especially at the end of the line containing this context, both in the context and mapping files.")
 
                 for f in m_features:
                     if f not in activatesFeature:
