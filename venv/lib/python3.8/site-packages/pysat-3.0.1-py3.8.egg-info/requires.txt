@@ -1,0 +1,9 @@
+dask
+netCDF4
+numpy
+pandas
+portalocker
+pytest
+scipy
+toolz
+xarray
