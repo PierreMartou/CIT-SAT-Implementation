@@ -4,7 +4,7 @@
 If mode is "Normal", will return a semi-refined array.
 If mode is "Refined", will refine the completely refined array.
 """
-def printCoveringArray(arrayCopy, systemData, mode="Normal", writeMode=False, evolution = None, order=True, latex=False):
+def printCoveringArray(arrayCopy, systemData, mode="Normal", writeMode=False, evolution = None, order=False, latex=False):
     # print("========== RESULTS =============")
     if len(arrayCopy) == 0:
         print('No test case found.')
@@ -231,8 +231,18 @@ def numberOfChangements(testSuite, allContexts, newNodes=None):
     contexts = allContexts.copy()
     if newNodes is not None:
         contexts = [contxt for contxt in contexts if contxt in newNodes]
+    else:
+        variabilityContexts = []
+        for testCase in testSuite:
+            for c in contexts:
+                if testCase[c] < 0:
+                    contexts.remove(c)
+                    variabilityContexts.append(c)
+        contexts = variabilityContexts
+
     if testSuite is None or len(testSuite) == 0:
         return 0
+
     prevTestCase = testSuite[0]
     score = sum([1 for context in contexts if prevTestCase[context] > 0])
     for testCase in testSuite:

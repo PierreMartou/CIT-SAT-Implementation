@@ -148,6 +148,12 @@ def CITSAT(systemData, verbose=False, numCandidates=30, testsEvolution = None, v
     if verbose:
         print("Computed sets in : " + str(time.time() - time1))
     uncoveredTSetCount = len(unCovSets)
+
+    #possiblePositiveFeaturePairs = [pair for pair in unCovSets if pair[0][1] > 0 and pair[1][1] > 0
+    #                                and pair[0][0] in systemData.getFeatures() and pair[1][0] in systemData.getFeatures()]
+    #print(possiblePositiveFeaturePairs)
+    #print(len(possiblePositiveFeaturePairs))
+
     factors = list(valuesForFactors.keys())
     if verbose:
         print("Finished computing covering sets.")

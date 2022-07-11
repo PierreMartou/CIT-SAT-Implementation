@@ -1,0 +1,373 @@
+import os
+import time
+
+from Lib import pickle
+
+from CITSAT import CITSAT
+from ResultRefining import printCoveringArray, numberOfChangements
+from SystemData import SystemData
+
+
+def readSuite(systemData, filePath):
+    suite = pickle.load(open(filePath, 'rb'))
+    return TestSuite(systemData, suite)
+
+
+class TestSuite:
+    def __init__(self, systemData, suite):
+        self.suiteUnordered = suite
+        self.suiteMinimized = self.minimizeTestEffort(suite, systemData.getContexts())
+        self.suiteMaximized = self.maximizeDissimilarity(suite, systemData.getFeatures())
+        self.contexts = systemData.getContexts()
+        self.features = systemData.getFeatures()
+        self.coreContexts = systemData.getContexts()
+        self.coreFeatures = systemData.getFeatures()
+        for testCase in suite:
+            for c in self.coreContexts:
+                if testCase[c] < 0:
+                    self.coreContexts.remove(c)
+            for f in self.coreFeatures:
+                if testCase[f] < 0:
+                    self.coreFeatures.remove(f)
+        self.variabilities = self.features.copy()
+        for f in self.coreFeatures:
+            self.variabilities.remove(f)
+
+    def storeSuite(self, filePath):
+        f = open(filePath, "wb")
+        pickle.dump(self.suiteUnordered, f)
+        f.close()
+
+    def compareFeatureSwitches(self):
+        minimizedFeatureSwitches = numberOfChangements(self.suiteMinimized, self.features)
+        maxFeatureSwitches = numberOfChangements(self.suiteMaximized, self.features)
+        print("Minimized feature switches : " + str(minimizedFeatureSwitches))
+        print("Maximized feature switches : " + str(maxFeatureSwitches))
+
+    def findConfiguration(self, initNumber):
+        if initNumber < 0 or initNumber >= len(self.suiteMinimized):
+            print("n is larger than the length of the test suite or smaller than 0. Can't find configuration.")
+            return None
+
+        config = self.suiteMinimized[initNumber]
+
+        correspondingNumber = 0
+        for test in self.suiteMaximized:
+            if config == test:
+                break
+            else:
+                correspondingNumber += 1
+
+        if self.suiteMinimized[initNumber] != self.suiteMaximized[correspondingNumber]:
+            print("ERROR AT FINDING SIMILAR CONFIGURATIONS.")
+
+        print("Activation order of test " + str(initNumber) + ", ordered test suite: ")
+        # print(self.suite[initNumber])
+        print(self.activationOrder(initNumber, self.suiteMinimized))
+        print("Activation order of test " + str(correspondingNumber) + ", unordered test suite: ")
+        # print(self.suite[correspondingNumber])
+        print(self.activationOrder(correspondingNumber, self.suiteMaximized))
+
+    def activationCoverage(self, suite):
+        featurePairs = dict.fromkeys([f for f in self.features if f not in self.coreFeatures])
+        for f in featurePairs:
+            featurePairs[f] = set()
+        for nTest in range(len(suite)):
+            activationOrder = [f for f in self.activationOrder(nTest, suite) if "Test number " not in f]
+            for fTest in range(len(activationOrder)-1):
+                currFeature = activationOrder[fTest]
+                for fprimeTest in range(fTest+1, len(activationOrder)):
+                    featurePairs[currFeature].add(activationOrder[fprimeTest])
+        return sum([len(featurePairs[f]) for f in featurePairs])
+
+    def analyseActivationCoverage(self, verbose=False):
+        orderedScore = self.activationCoverage(self.suiteMinimized)
+        if verbose:
+            print("Number of feature pairs for ordered test suite: " + str(orderedScore))
+
+        unorderedScore = self.activationCoverage(self.suiteMaximized)
+        if verbose:
+            print("Number of feature pairs for unordered test suite: " + str(unorderedScore))
+        # print((0.0+unorderedScore-orderedScore)/unorderedScore)
+        return unorderedScore, orderedScore, (0.0+unorderedScore-orderedScore)/unorderedScore
+
+    def activationOrder(self, n, suite):
+        if n < 0 or n >= len(suite):
+            print("n is larger than the length of the test suite or smaller than 0.")
+            return None
+
+        activationOrder = []
+        nTest = 0
+        for test in suite[:n+1]:
+            activationOrder = activationOrder + ["Test number "+str(nTest)]
+            nTest += 1
+            # Removing features deactivated
+            for feature in self.variabilities:
+                if test[feature] < 0 and feature in activationOrder:
+                    activationOrder.remove(feature)
+            for feature in self.variabilities:
+                if test[feature] > 0 and feature not in activationOrder:
+                    activationOrder.append(feature)
+        finalOrder = []
+        for x in range(len(activationOrder)-1):
+            if "Test number " in activationOrder[x] and "Test number " in activationOrder[x+1]:
+                pass
+            else:
+                finalOrder.append(activationOrder[x])
+        finalOrder.append(activationOrder[len(activationOrder)-1])
+        return finalOrder
+
+    def computeDistribution(self, n, suite):
+        activationOrder = self.activationOrder(n, suite)
+        totalFeatures = len([f for f in activationOrder if "Test number " not in f])
+        numberOfTests = len([f for f in activationOrder if "Test number " in f])
+        return totalFeatures, numberOfTests, float(totalFeatures)/numberOfTests, (numberOfTests+0.0)/totalFeatures
+
+    # computes test score with different weights on the features
+    def testWeightScore(self, activationOrder):
+        maxScore = 0
+        score = 0
+        snapshot = 0
+        for feature in range(len(activationOrder)-1):
+            if "Test number " in activationOrder[feature]:
+                maxScore += score
+                snapshot = score
+            else:
+                score += 1
+        if snapshot == 0:
+            return 0
+        return maxScore/snapshot
+
+    def compareDistribution(self, verbose=False):
+        init = 5
+        end = len(self.suiteMaximized)
+        numberOfOrders = end - init
+        unorderedTotalFeatures = 0.0
+        unorderedNumberOfTests = 0.0
+        unorderedAverage = 0.0
+        unorderedScore = 0.0
+
+        for i in range(init, end):
+            r = self.computeDistribution(i, self.suiteMaximized)
+            unorderedTotalFeatures += r[0]
+            unorderedNumberOfTests += r[1]
+            unorderedAverage += r[2]
+            unorderedScore += r[3]
+            # print(self.activationOrder(i))
+        if verbose:
+            print("Unordered suite distribution, average on all tests:")
+            print("Number of features: " + str(unorderedTotalFeatures/numberOfOrders)
+                  + "; number of tests: " + str(unorderedNumberOfTests/numberOfOrders)
+                  + "; average: " + str(unorderedAverage/numberOfOrders)
+                  + "; test score: " + str(unorderedScore/numberOfOrders))
+        unOrderedResult = [unorderedTotalFeatures/numberOfOrders, unorderedNumberOfTests/numberOfOrders,
+                           unorderedAverage/numberOfOrders, unorderedScore/numberOfOrders]
+
+        minimizedTotalFeatures = 0.0
+        minimizedNumberOfTests = 0.0
+        minimizedAverage = 0.0
+        minimizedScore = 0.0
+        for i in range(init, end):
+            r = self.computeDistribution(i, self.suiteMinimized)
+            minimizedTotalFeatures += r[0]
+            minimizedNumberOfTests += r[1]
+            minimizedAverage += r[2]
+            minimizedScore += r[3]
+            # print(self.activationOrder(i))
+        if verbose:
+            print("Minimized suite distribution, average on all tests:")
+            print("Number of features: " + str(minimizedTotalFeatures/numberOfOrders) + "; number of tests: " + str(minimizedNumberOfTests/numberOfOrders) + "; average: " + str(minimizedAverage/numberOfOrders))
+
+        minimizedResult = [minimizedTotalFeatures/numberOfOrders, minimizedNumberOfTests/numberOfOrders,
+                           minimizedAverage/numberOfOrders, minimizedScore/numberOfOrders]
+
+        return unOrderedResult + minimizedResult
+
+    """ Sorts the array to minimize the testing effort needed to simulate it.
+    """
+    def minimizeTestEffort(self, givenArray, nodes, nPrevTests=0):
+        array = givenArray.copy()
+        newArray = []
+        prevTest = []
+        if nPrevTests > 0:
+            for i in range(nPrevTests):
+                prevTest = array[0]
+                newArray.append(prevTest)
+                array.remove(prevTest)
+        else:
+            prevTest = min(array, key=lambda testCase: sum([1 for c in nodes if testCase[c] > 0]))
+            newArray = [prevTest]
+            array.remove(prevTest)
+
+        collision = 0
+        while array:  # until all test cases are transferred
+            minScore = self.effortDistance(array[0], prevTest, nodes)
+            bestTestCase = array[0]
+            for testCase in array:
+                currentScore = self.effortDistance(testCase, prevTest, nodes)
+                if currentScore == minScore:
+                    collision += 1
+                if currentScore < minScore:
+                    minScore = currentScore
+                    bestTestCase = testCase
+
+            prevTest = bestTestCase
+            newArray.append(prevTest)
+            array.remove(prevTest)
+        # print("The number of collisions encountered while sorting is: " + str(collision))
+        return newArray
+
+    """Returns the distance between t1 and t2, only for features/contexts contained in nodes.
+    """
+    def effortDistance(self, t1, t2, nodes=None):
+        distance = 0
+        for node in t1:
+            if t1[node] != t2[node]:
+                if nodes is None or node in nodes:
+                    distance += 1
+        return distance
+
+    """ Sorts the array to minimize the testing effort needed to simulate it.
+    """
+    def maximizeDissimilarity(self, givenArray, nodes):
+        array = givenArray.copy()
+        distanceMatrix = []
+        bestScore = 0
+        bestPair = (0, 0)
+        index = 0
+        for testCase in array:
+            distances = [self.jaccardDistance(testCase, t, nodes) for t in array]
+            if max(distances) > bestScore:
+                bestScore = max(distances)
+                bestPair = (index, distances.index(bestScore))
+            index += 1
+            distanceMatrix += distances
+        # print("Most dissimilar test cases: " + str(bestPair) + " ; with score : " + str(bestScore))
+        newArray = [array[bestPair[0]], array[bestPair[1]]]
+        array.remove(array[max(bestPair)])
+        array.remove(array[min(bestPair)])
+        prevTest = newArray[1]
+        collision = 0
+
+        while array:  # until all test cases are transferred
+            maxScore = self.jaccardDistance(array[0], prevTest, nodes)
+            bestTestCase = array[0]
+            for testCase in array:
+                currentScore = self.jaccardDistance(testCase, prevTest, nodes)
+                if currentScore == maxScore:
+                    collision += 1
+                if currentScore > maxScore:
+                    maxScore = currentScore
+                    bestTestCase = testCase
+
+            prevTest = bestTestCase
+            newArray.append(prevTest)
+            array.remove(prevTest)
+
+        # print("The number of collisions encountered while sorting is: " + str(collision))
+        return newArray
+
+    """Returns the distance between t1 and t2, only for features/contexts contained in nodes.
+    """
+    def jaccardDistance(self, t1, t2, nodes):
+        intersection = 0
+        for node in nodes:
+            if t1[node] > 0 and t1[node] == t2[node]:
+                intersection += 1
+        union = 0
+        for node in nodes:
+            if t1[node] > 0 or t2[node] > 0:
+                union += 1
+        return 1 - intersection/union
+
+    def maximizeReusability(self, suite):
+        orderedSuite = suite.copy()
+        reusabilitydegrees = {}
+        numberOfTests = len(suite)
+        for feature in self.features:
+            degree = 0
+            for test in suite:
+                if test[feature] > 0:
+                    degree += 1
+            reusabilitydegrees[feature] = float(degree) / numberOfTests
+
+    def getMinTestSuite(self):
+        return self.suiteMinimized
+
+    def getMaxTestSuite(self):
+        return self.suiteMaximized
+
+def singleTest():
+    time1 = time.time()
+    models = "./data/enlarged/"
+    s = SystemData(models+'contexts.txt', models+'features.txt', models+'mapping.txt')
+    result = CITSAT(s, False, 30)
+    # print(result)
+    totalTime = time.time() - time1
+    testSuite = TestSuite(s, result)
+    result = testSuite.getMinTestSuite()
+    print("==================== To create a Latex table ====================")
+    printCoveringArray(result, s, mode="Refined", latex=True)
+    print("\n")
+    print("==================== Normal version ====================")
+    printCoveringArray(result, s, mode="Refined", latex=False)
+
+    print("Computation time : " + str(totalTime) + " seconds")
+
+    unrefinedCost = numberOfChangements(testSuite.getMaxTestSuite(), s.getContexts())
+    print("COST UNREFINED : " + str(unrefinedCost))
+    refinedCost = numberOfChangements(testSuite.getMinTestSuite(), s.getContexts())
+    print("COST REFINED : " + str(refinedCost))
+    print("Decrease in cost of : " + str((unrefinedCost - refinedCost)/unrefinedCost))
+
+    testSuite.compareFeatureSwitches()
+
+    testSuite.findConfiguration(10)
+
+
+def testingScores():
+    models = "./data/enlarged/"
+    s = SystemData(models+'contexts.txt', models+'features.txt', models+'mapping.txt')
+    resultsActivationOrder = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    resultsActivationCoverage = [0.0, 0.0, 0.0]
+    nIterations = 150
+    for i in range(nIterations):
+        filepath = "./data/testSuites/testSuite"+str(i)+".pkl"
+        if os.path.exists(filepath):
+            testSuite = readSuite(s, "./data/testSuites/testSuite"+str(i)+".pkl")
+        else:
+            testSuite = TestSuite(s, CITSAT(s, False, 30))
+            testSuite.storeSuite("./data/testSuites/testSuite"+str(i)+".pkl")
+
+        currResult = testSuite.compareDistribution()
+        for j in range(len(currResult)):
+            resultsActivationOrder[j] += currResult[j]
+        currResult = testSuite.analyseActivationCoverage()
+        for j in range(len(currResult)):
+            resultsActivationCoverage[j] += currResult[j]
+    for j in range(len(resultsActivationOrder)):
+        resultsActivationOrder[j] = resultsActivationOrder[j] / nIterations
+    for j in range(len(resultsActivationCoverage)):
+        resultsActivationCoverage[j] = resultsActivationCoverage[j] / nIterations
+
+    print("-------------------------------------------")
+    print("Unordered suite metrics, average on " + str(nIterations) + " tests:")
+    print("Number of features: " + str(resultsActivationOrder[0])
+          + "; number of tests: " + str(resultsActivationOrder[1])
+          + "; average: " + str(resultsActivationOrder[2])
+          + "; test score: " + str(resultsActivationOrder[3]))
+    print("Coverage (number of pairs tested): " + str(resultsActivationCoverage[0]))
+
+    print("Ordered suite metrics, average on " + str(nIterations) + " tests:")
+    print("Number of features: " + str(resultsActivationOrder[4])
+          + "; number of tests: " + str(resultsActivationOrder[5])
+          + "; average: " + str(resultsActivationOrder[6])
+          + "; test score: " + str(resultsActivationOrder[7]))
+    print("Coverage (number of pairs tested): " + str(resultsActivationCoverage[1]))
+
+    print("On average, decrease of " + str(resultsActivationCoverage[2]) + "% in the coverage.")
+
+
+print("-------------------------------------------")
+testingScores()
+# testSuite.analyseActivationCoverage()

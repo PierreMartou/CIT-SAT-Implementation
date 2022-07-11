@@ -121,6 +121,8 @@ def rearrangementMetricsTest(iterations):
     for model in models:
         unrefinedScore = 0
         refinedScore = 0
+        unrefinedFeatureScore = 0
+        refinedFeatureScore = 0
         increaseScore = 0
         tmpUnrefinedVariance = 0
         tmpRefinedVariance = 0
@@ -141,9 +143,11 @@ def rearrangementMetricsTest(iterations):
             sizeScore += len(result)
             unrefined = numberOfChangements(result, s.getContexts())
             unrefinedScore += unrefined
+            unrefinedFeatureScore += numberOfChangements(result, s.getFeatures())
             tmpUnrefinedVariance += unrefined * unrefined
             refined = numberOfChangements(orderArray(result, s.getContexts()), s.getContexts())
             refinedScore += refined
+            refinedFeatureScore += numberOfChangements(orderArray(result, s.getContexts()), s.getFeatures())
             tmpRefinedVariance += refined * refined
             increase = 100*(unrefined - refined) / unrefined
             increaseScore += increase
@@ -156,6 +160,9 @@ def rearrangementMetricsTest(iterations):
         print("Variance of the score : " + str(math.sqrt(tmpIncreaseVariance/iterations - ((increaseScore/iterations) * (increaseScore/iterations)))))
         print("Average of time taken : " + str(timeScore/iterations))
         print("Average propagations : " + str(propagations/iterations) + " - Average propagated nodes : " + str(propagatedScore/iterations))
+        print("Unrefined FEATURE score : " + str(unrefinedFeatureScore) + "; in average : " + str(unrefinedFeatureScore/iterations))
+        print("Refined FEATURE score : " + str(refinedFeatureScore) + "; in average : " + str(refinedFeatureScore/iterations))
+        print("(From the score themselves) FEATURE SCORE Average decrease of " + str(100*(unrefinedFeatureScore - refinedFeatureScore)/unrefinedFeatureScore) + " %")
 
 
 def evolutionMetrics(iterations):
@@ -294,10 +301,10 @@ def plotAnalysisOfS():
 
 
 # evolutionMetrics(10)
-# rearrangementMetricsTest(10)
+rearrangementMetricsTest(20)
 # anotherTest()
 
-singleRun() # Runs a single time the algorithm and displays the results
+# singleRun() # Runs a single time the algorithm and displays the results
 
 # procedureForIncrementalTesting()
 
