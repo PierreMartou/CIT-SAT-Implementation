@@ -4,6 +4,7 @@ import time
 from Lib import pickle
 
 from CITSAT import CITSAT
+from RandomSampling import randomSampling, computeCoverage, allPairs, invalidChance
 from ResultRefining import printCoveringArray, numberOfChangements
 from SystemData import SystemData
 
@@ -368,6 +369,19 @@ def testingScores():
     print("On average, decrease of " + str(resultsActivationCoverage[2]) + "% in the coverage.")
 
 
+def randomSamplingCoverage():
+    models = "./data/enlarged/"
+    s = SystemData(models+'contexts.txt', models+'features.txt', models+'mapping.txt')
+    testSuite = randomSampling(s)
+    pairs = allPairs(s)
+    maxCoverage = len(pairs)
+    randomCoverage = computeCoverage(pairs, testSuite)
+    print("Maximum coverage: "+str(maxCoverage) + "; coverage of random sampling: " + str(randomCoverage) + " - "+str(float(randomCoverage)/maxCoverage))
+    print("Chance of generating valid test cases:")
+    invalidChance(s)
+
+
 print("-------------------------------------------")
-testingScores()
+# randomSamplingCoverage()
+# testingScores()
 # testSuite.analyseActivationCoverage()

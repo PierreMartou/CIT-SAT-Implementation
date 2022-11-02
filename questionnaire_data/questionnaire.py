@@ -10,6 +10,7 @@ def sizeOfModels(dataFolder):
     index = 0
     nFeatures = 0
     nContexts = 0
+    nMapping = 0
     sizeSuite = 0
     for subdir, dirs, files in os.walk(dataFolder):
         if subdir != "./questionnaire_data" and subdir[-6:] == "_file_":
@@ -23,7 +24,9 @@ def sizeOfModels(dataFolder):
             sizeSuite += len(testSuite.getMinTestSuite())
             nFeatures += len(s.getFeatures())
             nContexts += len(s.getContexts())
-    return nFeatures / index, nContexts / index, sizeSuite / index
+            test = open(subdir+'/mapping.txt')
+            nMapping += len(test.readlines())
+    return nFeatures / index, nContexts / index, sizeSuite / index, nMapping / index
 
 
 def questionnairePie():
@@ -55,38 +58,53 @@ def questionnairePlot(names, y, file_name):
 def questionnaireDesignCauses():
     names = ["Design fault", "Modelling of the env.", "Adaptation to the env.", "New ideas", "Other"]
     y = [13, 5, 9, 8, 5]
-    filename = './questionnaire_data/design-causes.png'
+    filename = 'design-causes.png'
     questionnairePlot(names, y, filename)
 
 def questionnaireDesignStrengths():
     names = ["U. the domain", "U. the modelling", "U. the implementation", "U. design testing", "U. implementation testing", "Correct the design", "Improve the design"]
     y = [8, 11, 3, 5, 3, 15, 12]
-    filename = './questionnaire_data/design-strengths.png'
+    filename = 'design-strengths.png'
     questionnairePlot(names, y, filename)
 
 def questionnaireDesignWeaknesses():
     names = ["Use the suite", "Extract results", "Write usage scenarios", "Overkill to use the tool", "Other"]
     y = [0, 6, 4, 2, 10]
-    filename = './questionnaire_data/design-weaknesses.png'
+    filename = 'design-weaknesses.png'
     questionnairePlot(names, y, filename)
 
 def questionnaireImplementationCauses():
     names = ["Declaration of\nthe context-feature model", "Application classes", "Feature behaviour", "System behaviour", "Interaction between features", "Interaction between\napplication classes and features", "Understanding of RubyCOP", "Other"]
     # names = ["a", "b", "c", "d", "d", "g", "d", "h"]
     y = [3, 0, 4, 2, 4, 3, 2, 2]
-    filename = './questionnaire_data/implementation-causes.png'
+    filename = 'implementation-causes.png'
     questionnairePlot(names, y, filename)
 
 def questionnaireImplementationDifficulties():
     names = ["Hard to use", "Tool didn't work as intended", "Already corrected\nwithout help", "Already corrected\nwith another tool", "Too simple models, overkill", "No difficulties", "Other"]
     y = [1, 2, 2, 1, 1, 13, 2]
-    filename = './questionnaire_data/implementation-difficulties.png'
+    filename = 'implementation-difficulties.png'
+    questionnairePlot(names, y, filename)
+
+def questionnaireNumberOfDesignErrors():
+    names = ["0 change", "1 change", "2 to 5 changes", "6 to 10 changes"]
+    y = [1, 4, 13, 1]
+    filename = "number-errors-design.png"
+    questionnairePlot(names, y, filename)
+
+def questionnaireNumberOfImplementationErrors():
+    names = ["0 change", "1 change", "2 to 5 changes", "6 to 10 changes", "More than\n10 changes"]
+    y = [10, 2, 4, 2, 1]
+    filename = "number-errors-implementation.png"
     questionnairePlot(names, y, filename)
 
 
 dataFolder = './questionnaire_data/student_models'
-questionnaireDesignCauses()
-questionnaireDesignStrengths()
-questionnaireDesignWeaknesses()
-questionnaireImplementationCauses()
-questionnaireImplementationDifficulties()
+questionnaireNumberOfImplementationErrors()
+questionnaireNumberOfDesignErrors()
+# questionnaireDesignCauses()
+# questionnaireDesignStrengths()
+# questionnaireDesignWeaknesses()
+# questionnaireImplementationCauses()
+# questionnaireImplementationDifficulties()
+# print(sizeOfModels(dataFolder))

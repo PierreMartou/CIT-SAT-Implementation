@@ -182,3 +182,6 @@ class SystemData:
 
     def getValuesForFactors(self):
         return self.valuesForFactors.copy()
+
+    def getMappingConstraints(self):
+        return self.mappingConstraints.copy()

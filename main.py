@@ -267,10 +267,12 @@ def plotAnalysisOfS():
 
     plt.plot(x, y, 'o', xnew, f, '--')
     plt.legend(['Data', 'Least square approximation'])
-    plt.title('Total cost')
+    plt.title('')
     plt.xlabel('S')
     plt.ylabel('Total cost')
-    plt.savefig("totalCost.pdf")
+    #test = [1, 3, 5, 7, 9, 11, 13, 15]
+    #plt.xticks(test, test)
+    plt.savefig("results/totalCost.pdf")
     plt.show()
 
     y = [5.0, 5.2, 4.6, 5.3, 5.7, 5.2, 6.1, 6.0, 5.9, 5.5, 6.4, 6.5, 7.2, 7.4, 7.4]
@@ -280,10 +282,12 @@ def plotAnalysisOfS():
     f = polyval(param, xnew)
     plt.plot(x, y, 'o', xnew, f, '--')
     plt.legend(['Data', 'Least square approximation'])
-    plt.title('Added tests')
+    plt.title('')
     plt.xlabel('S')
+    #test = [1, 3, 5, 7, 9, 11, 13, 15]
+    #plt.xticks(test, test)
     plt.ylabel('Number of new tests')
-    plt.savefig("addedTests.pdf")
+    plt.savefig("results/addedTests.pdf")
     plt.show()
 
     y = [1.0, 1.8, 2.4, 2.9, 3.3, 3.8, 4.3, 4.325, 4.7, 5.5, 4.9, 6, 6.2, 5.4]
@@ -293,22 +297,24 @@ def plotAnalysisOfS():
     f = polyval(param, xnew)
     plt.plot(x, y, 'o', xnew, f, '--', x, x, '-')
     plt.legend(['Data', 'Least square approximation', 'Theoretical'])
-    plt.title('Test scenarios/scenario')
+    plt.title('')
     plt.xlabel('S')
-    plt.ylabel('updated scenario/partial scenario')
-    plt.savefig("testcase-scenario.pdf")
+    plt.ylabel('updates/partial scenario')
+    #test = [1, 3, 5, 7, 9, 11, 13, 15]
+    #plt.xticks(test, test)
+    plt.savefig("results/testcase-scenario.pdf")
     plt.show()
 
 
 # evolutionMetrics(10)
-rearrangementMetricsTest(20)
+# rearrangementMetricsTest(20)
 # anotherTest()
 
 # singleRun() # Runs a single time the algorithm and displays the results
 
 # procedureForIncrementalTesting()
 
-# plotAnalysisOfS()
+plotAnalysisOfS()
 
 # multipleRuns(3)
 
