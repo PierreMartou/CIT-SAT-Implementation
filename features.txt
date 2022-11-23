@@ -1,6 +1,0 @@
-Feature/Mandatory/Send_message-Receive_message-Add_contact-Remove_contact-Create_group
-Feature/Optional/Receive_call-Send_call-List_contacts-Notification
-Send_message/Alternative/Predefined-Personnalized
-Receive_message/Alternative/Audio-Text
-List_contacts/Optional/Search
-Notification/Alternative/Mute-Sound-Vibration
