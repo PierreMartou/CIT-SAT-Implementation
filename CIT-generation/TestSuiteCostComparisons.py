@@ -1,7 +1,9 @@
 import os
+import pickle
 import time
+from random import randrange
 
-from Lib import pickle
+# from Lib import pickle
 
 from CITSAT import CITSAT
 from RandomSampling import randomSampling, computeCoverage, invalidChance
@@ -20,6 +22,7 @@ class TestSuite:
         self.suiteUnordered = suite
         self.suiteMinimized = self.minimizeTestEffort(suite, systemData.getContexts())
         self.suiteMaximized = self.maximizeDissimilarity(suite, systemData.getFeatures())
+        self.suiteRandomOrder = self.randomOrder()
         self.contexts = systemData.getContexts()
         self.features = systemData.getFeatures()
         self.coreContexts = systemData.getContexts()
@@ -71,14 +74,19 @@ class TestSuite:
         print(self.activationOrder(correspondingNumber, self.suiteMaximized))
 
     # Computes all transitions covered in this test suite, while effort is minimised.
-    def transitionPairCoverageMinimised(self):
+    def transitionPairCoverage(self, mode="random"):
         if len(self.suiteMinimized) < 2:
             print("There are no transitions in a test suite with only one configuration.")
             return []
 
         transitions = []
-        prev = self.suiteMinimized[0]
-        for test in self.suiteMinimized[1:]:
+        suite = self.suiteMinimized
+        if mode == "unordered":
+            suite = self.suiteUnordered
+        elif mode == "random":
+            suite = self.suiteRandomOrder
+        prev = suite[0]
+        for test in suite[1:]:
             changes = []
             for f in self.variabilities:
                 if prev[f] != test[f]:
@@ -209,6 +217,16 @@ class TestSuite:
 
         return unOrderedResult + minimizedResult
 
+    def randomOrder(self):
+        suite = self.suiteUnordered.copy()
+        randomlyOrderedSuite = []
+        while suite:
+            index = randrange(len(suite))
+            randomlyOrderedSuite.append(suite[index])
+            suite.remove(suite[index])
+        return randomlyOrderedSuite
+
+
     """ Sorts the array to minimize the testing effort needed to simulate it.
     """
     def minimizeTestEffort(self, givenArray, nodes, nPrevTests=0):
@@ -322,6 +340,9 @@ class TestSuite:
 
     def getMaxTestSuite(self):
         return self.suiteMaximized
+
+    def getRandomTestSuite(self):
+        return self.suiteRandomOrder
 
 def singleTest():
     time1 = time.time()
