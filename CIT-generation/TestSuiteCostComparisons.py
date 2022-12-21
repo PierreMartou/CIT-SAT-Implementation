@@ -4,9 +4,10 @@ import time
 from Lib import pickle
 
 from CITSAT import CITSAT
-from RandomSampling import randomSampling, computeCoverage, allPairs, invalidChance
+from RandomSampling import randomSampling, computeCoverage, invalidChance
 from ResultRefining import printCoveringArray, numberOfChangements
 from SystemData import SystemData
+from SATSolver import SATSolver
 
 
 def readSuite(systemData, filePath):
@@ -68,6 +69,30 @@ class TestSuite:
         print("Activation order of test " + str(correspondingNumber) + ", unordered test suite: ")
         # print(self.suite[correspondingNumber])
         print(self.activationOrder(correspondingNumber, self.suiteMaximized))
+
+    # Computes all transitions covered in this test suite, while effort is minimised.
+    def transitionPairCoverageMinimised(self):
+        if len(self.suiteMinimized) < 2:
+            print("There are no transitions in a test suite with only one configuration.")
+            return []
+
+        transitions = []
+        prev = self.suiteMinimized[0]
+        for test in self.suiteMinimized[1:]:
+            changes = []
+            for f in self.variabilities:
+                if prev[f] != test[f]:
+                    sign = "+" if test[f] > 0 else "-"
+                    changes.append(sign + f)
+            for i in range(len(changes)):
+                for j in range(i+1, len(changes)):
+                    pair = (changes[i], changes[j])
+                    mirrorPair = (changes[j], changes[i])
+                    if pair not in transitions and mirrorPair not in transitions:
+                        transitions.append(pair)
+            prev = test
+        return transitions
+
 
     def activationCoverage(self, suite):
         featurePairs = dict.fromkeys([f for f in self.features if f not in self.coreFeatures])
@@ -325,20 +350,42 @@ def singleTest():
 
     testSuite.findConfiguration(10)
 
+def allPairs(systemData, filtered=True):
+    mySATsolver = SATSolver(systemData)
+    valuesForFactors = systemData.getValuesForFactors()
+    unCovSets = []
+    factors = list(valuesForFactors.keys())
+    for i in range(len(factors) - 1):
+        for j in range(len(valuesForFactors[factors[i]])):
+            pair1 = (factors[i], valuesForFactors[factors[i]][j])
+            for i2 in range(i + 1, len(factors)):
+                for j2 in range(len(valuesForFactors[factors[i2]])):
+                    pair2 = (factors[i2], valuesForFactors[factors[i2]][j2])
+
+                    if mySATsolver.checkSAT([pair1[1], pair2[1]]):
+                        # Each set is a [Factor, Value, Factor, Value, ...] tuple
+                        unCovSets.append([pair1, pair2])
+    if filtered:
+        cores = []
+        for candidate in list(valuesForFactors.keys()):
+            if not mySATsolver.checkSAT([-1*abs(valuesForFactors[candidate][0])]):
+                cores.append(candidate)
+        unCovSets = [unCovSet for unCovSet in unCovSets if unCovSet[0][0] not in cores and unCovSet[1][0] not in cores]
+    return unCovSets
 
 def testingScores():
-    models = "./data/enlarged/"
+    models = "../data/enlarged/"
     s = SystemData(models+'contexts.txt', models+'features.txt', models+'mapping.txt')
     resultsActivationOrder = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
     resultsActivationCoverage = [0.0, 0.0, 0.0]
-    nIterations = 150
+    nIterations = 5
     for i in range(nIterations):
-        filepath = "./data/testSuites/testSuite"+str(i)+".pkl"
+        filepath = "../data/testSuitesSPLC/testSuite"+str(i)+".pkl"
         if os.path.exists(filepath):
-            testSuite = readSuite(s, "./data/testSuites/testSuite"+str(i)+".pkl")
+            testSuite = readSuite(s, "../data/testSuitesSPLC/testSuite"+str(i)+".pkl")
         else:
             testSuite = TestSuite(s, CITSAT(s, False, 30))
-            testSuite.storeSuite("./data/testSuites/testSuite"+str(i)+".pkl")
+            testSuite.storeSuite("../data/testSuitesSPLC/testSuite"+str(i)+".pkl")
 
         currResult = testSuite.compareDistribution()
         for j in range(len(currResult)):
@@ -381,7 +428,8 @@ def randomSamplingCoverage():
     invalidChance(s)
 
 
-print("-------------------------------------------")
-# randomSamplingCoverage()
-# testingScores()
-# testSuite.analyseActivationCoverage()
+if __name__ == '__main__':
+    print("-------------------------------------------")
+    # randomSamplingCoverage()
+    testingScores()
+    # testSuite.analyseActivationCoverage()

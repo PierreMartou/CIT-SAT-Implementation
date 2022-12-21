@@ -42,29 +42,6 @@ def containsPair(pair, testSuite):
             return True
     return False
 
-def allPairs(systemData, filtered=True):
-    mySATsolver = SATSolver(systemData)
-    valuesForFactors = systemData.getValuesForFactors()
-    unCovSets = []
-    factors = list(valuesForFactors.keys())
-    for i in range(len(factors) - 1):
-        for j in range(len(valuesForFactors[factors[i]])):
-            pair1 = (factors[i], valuesForFactors[factors[i]][j])
-            for i2 in range(i + 1, len(factors)):
-                for j2 in range(len(valuesForFactors[factors[i2]])):
-                    pair2 = (factors[i2], valuesForFactors[factors[i2]][j2])
-
-                    if mySATsolver.checkSAT([pair1[1], pair2[1]]):
-                        # Each set is a [Factor, Value, Factor, Value, ...] tuple
-                        unCovSets.append([pair1, pair2])
-    if filtered:
-        cores = []
-        for candidate in list(valuesForFactors.keys()):
-            if not mySATsolver.checkSAT([-1*abs(valuesForFactors[candidate][0])]):
-                cores.append(candidate)
-        unCovSets = [unCovSet for unCovSet in unCovSets if unCovSet[0][0] not in cores and unCovSet[1][0] not in cores]
-    return unCovSets
-
 
 def invalidChance(systemData):
     valuesForFactors = systemData.getValuesForFactors()

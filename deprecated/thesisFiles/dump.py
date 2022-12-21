@@ -54,7 +54,7 @@ def orderNodes(constraints, root):
 """
 
 
-"""in plots.py
+"""in plots-SPLC.py
 def testAETG():
     valuesForFactors = {}
     valuesForFactors['F1'] = [1, 2]

@@ -1,8 +1,7 @@
 import math
 import os
 from SystemData import SystemData
-from TestSuite import TestSuite, readSuite
-from CITSAT import CITSAT
+from TestSuite import readSuite
 import matplotlib.pyplot as plt
 import numpy as np
 

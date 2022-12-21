@@ -2,7 +2,7 @@ import random
 import time
 
 from SATSolver import SATSolver
-from TestsEvolution import TestsEvolution
+
 """A set is under the form ((feature1, _), (feature2, _)).
 orderedSet returns the set with feature1 and feature2 ordered like in the keys of valuesForFactors.
 """

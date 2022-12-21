@@ -81,7 +81,7 @@ def printCoveringArray(arrayCopy, systemData, mode="Normal", writeMode=False, ev
         print("MODIFICATIONS ON PREVIOUS TESTS : " + str(modif))
 
     if writeMode:
-        testFile = open("testsFile.txt", 'w')
+        testFile = open("../testsFile.txt", 'w')
         allNodes = ""
         for node in systemData.getNodes()[1:]:
             allNodes += node + "-"
