@@ -89,6 +89,8 @@ class SystemData:
             self.featureConstraints = [('root', 'Feature', [])]
             for line in f:
                 parsedLine = line.replace("\n", "").split("/")
+                if len(parsedLine) != 3:
+                    print("In line \"" + str(line) + "\", the constraint is not correctly formatted.")
                 newConstraint = (parsedLine[1], parsedLine[0], parsedLine[2].split("-"))
                 self.featureConstraints.append(newConstraint)
 
@@ -101,6 +103,8 @@ class SystemData:
             self.contextConstraints = [('root', 'Context', [])]
             for line in f:
                 parsedLine = line.replace("\n", "").split("/")
+                if len(parsedLine) != 3:
+                    print("In line \"" + str(line) + "\", the constraint is not correctly formatted.")
                 newConstraint = (parsedLine[1], parsedLine[0], parsedLine[2].split("-"))
                 self.contextConstraints.append(newConstraint)
 

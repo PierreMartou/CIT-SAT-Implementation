@@ -1,5 +1,5 @@
 GPSconnection-ACTIVATES-Map
-Impactedzone-Coldweather-ACTIVATES-InstructionsColdweather
-Impactedzone-Floods-ACTIVATES-InstructionsFloods
-Coldweather-ACTIVATES-LowRisk
-Floods-ACTIVATES-HighRisk
+Impactedzone-Coldweather-ACTIVATES-Instructions-InstructionsColdweather
+Impactedzone-Floods-ACTIVATES-Instructions-InstructionsFloods
+Coldweather-ACTIVATES-Low
+Floods-ACTIVATES-High

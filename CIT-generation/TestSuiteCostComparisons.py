@@ -12,10 +12,15 @@ from SystemData import SystemData
 from SATSolver import SATSolver
 
 
-def readSuite(systemData, filePath):
+def readSuite(filePath):
     suite = pickle.load(open(filePath, 'rb'))
-    return TestSuite(systemData, suite)
+    return suite
 
+
+def storeSuite(suite, filePath):
+    f = open(filePath, "wb")
+    pickle.dump(suite, f)
+    f.close()
 
 class TestSuite:
     def __init__(self, systemData, suite):
@@ -37,11 +42,6 @@ class TestSuite:
         self.variabilities = self.features.copy()
         for f in self.coreFeatures:
             self.variabilities.remove(f)
-
-    def storeSuite(self, filePath):
-        f = open(filePath, "wb")
-        pickle.dump(self.suiteUnordered, f)
-        f.close()
 
     def compareFeatureSwitches(self):
         minimizedFeatureSwitches = numberOfChangements(self.suiteMinimized, self.features)
@@ -73,18 +73,28 @@ class TestSuite:
         # print(self.suite[correspondingNumber])
         print(self.activationOrder(correspondingNumber, self.suiteMaximized))
 
-    # Computes all transitions covered in this test suite, while effort is minimised.
-    def transitionPairCoverage(self, mode="random"):
+    # Computes all transitions covered in this test suite, with the order being specified.
+    def transitionPairCoverage(self, mode):
         if len(self.suiteMinimized) < 2:
             print("There are no transitions in a test suite with only one configuration.")
             return []
 
+        if mode == None:
+            print("Please provide a mode when computing transition pairs coverage.")
+
         transitions = []
-        suite = self.suiteMinimized
-        if mode == "unordered":
+        suite = self.suiteRandomOrder
+        if mode == "minimized":
+            suite = self.suiteMinimized
+        elif mode == "unordered":
             suite = self.suiteUnordered
         elif mode == "random":
             suite = self.suiteRandomOrder
+        elif mode == "dissimilarity":
+            suite = self.suiteMaximized
+        else:
+            print("The mode was not recognized.")
+
         prev = suite[0]
         for test in suite[1:]:
             changes = []
@@ -271,7 +281,7 @@ class TestSuite:
                     distance += 1
         return distance
 
-    """ Sorts the array to minimize the testing effort needed to simulate it.
+    """ Sorts the array to maximize dissimilarity between test scenarios.
     """
     def maximizeDissimilarity(self, givenArray, nodes):
         array = givenArray.copy()
@@ -403,10 +413,10 @@ def testingScores():
     for i in range(nIterations):
         filepath = "../data/testSuitesSPLC/testSuite"+str(i)+".pkl"
         if os.path.exists(filepath):
-            testSuite = readSuite(s, "../data/testSuitesSPLC/testSuite"+str(i)+".pkl")
+            testSuite = readSuite(s, filepath)
         else:
             testSuite = TestSuite(s, CITSAT(s, False, 30))
-            testSuite.storeSuite("../data/testSuitesSPLC/testSuite"+str(i)+".pkl")
+            testSuite.storeSuite(filepath)
 
         currResult = testSuite.compareDistribution()
         for j in range(len(currResult)):
