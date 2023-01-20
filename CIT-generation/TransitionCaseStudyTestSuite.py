@@ -37,7 +37,7 @@ def computeTestSuite(iteration):
 
 def findSuitableCITsuite(s, errors, search="stats", mode="random", verbose=True):
     countValids = 0
-    averageErrorFounds = 0
+    averageErrorFounds = 0.0
     maxIterations = 1000
     normalise = maxIterations / 100
     iteration = 0
@@ -47,7 +47,7 @@ def findSuitableCITsuite(s, errors, search="stats", mode="random", verbose=True)
         transitions = testSuite.transitionPairCoverage(mode)
 
         contains = True
-        errorFound = len(errors)
+        errorFound = float(len(errors))
         for e in errors:
             if e not in transitions and (e[1], e[0]) not in transitions:
                 contains = False
@@ -70,7 +70,7 @@ def findSuitableCITsuite(s, errors, search="stats", mode="random", verbose=True)
     if search == "statsContain":
         return percentage
     elif search == "statsCoverage":
-        return averageErrorFounds/maxIterations
+        return round(averageErrorFounds/maxIterations*100, 2)
     print("MODE NOT RECOGNIZED")
 
 
@@ -108,10 +108,8 @@ print("Averages: " + str(percentages))"""
 print("Computing percentage of coverage in average.")
 av = 50
 percentages = [0, 0, 0, 0]
-it = 50
-print(allTransitions[0:it])
 for mode in modes:
-    percentages[modes.index(mode)] += findSuitableCITsuite(s, [allTransitions[0:it]], search="statsCoverage", mode=mode, verbose=False)
+    percentages[modes.index(mode)] += findSuitableCITsuite(s, allTransitions, search="statsCoverage", mode=mode, verbose=False)
 print("Average: " + str(percentages))
 # printCoveringArray(testSuite.getMinTestSuite(), s, mode="Refined", latex=False)
 # transitions = testSuite.transitionPairCoverageMinimised()
