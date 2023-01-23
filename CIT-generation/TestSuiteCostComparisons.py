@@ -354,6 +354,51 @@ class TestSuite:
     def getRandomTestSuite(self):
         return self.suiteRandomOrder
 
+    def getSpecificOrderSuite(self, mode):
+        if mode == "minimized":
+            return self.suiteMinimized
+        elif mode == "dissimilarity":
+            return self.suiteMaximized
+        elif mode == "unordered":
+            return self.suiteUnordered
+        elif mode == "random":
+            return self.suiteRandomOrder
+        print("MODE NOT RECOGNIZED")
+        return None
+
+    def printLatexTransitionForm(self, mode):
+        suite = self.getSpecificOrderSuite(mode)
+        prevTest = {f: -1*abs(suite[0][f]) for f in self.features+self.contexts if f != "Context" and f != "Feature"}
+        num = 0
+        for test in suite:
+            num += 1
+            linePlusContext = ""
+            lineMinusContext = ""
+            linePlusFeature = ""
+            lineMinusFeature = ""
+            for f in prevTest:
+                if test[f] != prevTest[f]:
+                    # sign = ", -" if test[f] < 0 else ", +"
+                    if f in self.features:
+                        if test[f] > 0:
+                            linePlusFeature += ", +"+str(f)
+                        else:
+                            lineMinusFeature += ", -"+str(f)
+                    else:
+                        if test[f] > 0:
+                            linePlusContext += ", +"+str(f)
+                        else:
+                            lineMinusContext += ", -"+str(f)
+            if len(lineMinusContext) < 2:
+                linePlusContext = linePlusContext[2:]
+            if len(lineMinusFeature) < 2:
+                linePlusFeature = linePlusFeature[2:]
+
+            toPrint = str(num) + " & " + lineMinusContext[2:] + linePlusContext + " & " + lineMinusFeature[2:] + linePlusFeature + " \\\\\\hline"
+            toPrint = toPrint.replace("Instructions", "Instr")
+            print(toPrint)
+            prevTest = test
+
 def singleTest():
     time1 = time.time()
     models = "./data/enlarged/"

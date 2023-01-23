@@ -40,33 +40,30 @@ def findSuitableCITsuite(s, errors, search="stats", mode="random", verbose=True)
     averageErrorFounds = 0.0
     maxIterations = 1000
     normalise = maxIterations / 100
+    lengths = 0
     iteration = 0
     while iteration < maxIterations:
         iteration += 1
         testSuite = computeTestSuite(iteration)
         transitions = testSuite.transitionPairCoverage(mode)
 
-        contains = True
         errorFound = float(len(errors))
         for e in errors:
             if e not in transitions and (e[1], e[0]) not in transitions:
-                contains = False
                 errorFound -= 1
         averageErrorFounds += errorFound/len(errors)
-        if contains:
+        if errorFound == len(errors):
             countValids += 1
-        if not contains and search == "notContains":
-            print("Found after " + str(iteration) + " iterations.")
-            printCoveringArray(testSuite.getRandomTestSuite(), s, mode="Refined", latex=False)
-            return testSuite
-        elif contains and search == "contains":
-            print("Found after " + str(iteration) + " iterations.")
-            printCoveringArray(testSuite.getRandomTestSuite(), s, mode="Refined", latex=False)
-            return testSuite
+        lengths += len(testSuite.getSpecificOrderSuite(mode))
+        if len(testSuite.getSpecificOrderSuite(mode)) < 9 and len(testSuite.getSpecificOrderSuite(mode)) > 6:
+            if (errorFound == 0 and search == "notContains") or (errorFound == len(errors) and search == "contains"):
+                print("Found after " + str(iteration) + " iterations.")
+                testSuite.printLatexTransitionForm(mode)
+                return testSuite
     # print("Max iterations reached.")
     percentage = round(countValids/normalise, 2)
     if verbose:
-        print("mode = "+str(mode) + " : " + str(percentage) + " % containing the transitions.")
+        print("mode = "+str(mode) + " : " + str(percentage) + " % containing the transitions, average size of " + str(lengths/maxIterations))
     if search == "statsContain":
         return percentage
     elif search == "statsCoverage":
@@ -74,7 +71,7 @@ def findSuitableCITsuite(s, errors, search="stats", mode="random", verbose=True)
     print("MODE NOT RECOGNIZED")
 
 
-models = "../data/RiS/"
+models = "../data/RIS/"
 s = SystemData(models+'contexts.txt', models+'features.txt', models+'mapping.txt')
 
 modes = ["unordered", "random", "dissimilarity", "minimized"]
@@ -94,10 +91,14 @@ print("+HIGH +INSTRUCTIONSFLOODS")
 for mode in modes:
     findSuitableCITsuite(s, [("+InstructionsFloods", "+High")], search="statsContain", mode=mode)"""
 
+print("TWO TRANSITIONS")
+findSuitableCITsuite(s, [("-High", "+Low"), ("+Instructions", "-Map")], search="notContains", mode="random")
+
 allPairs = allPairs(s)
 allTransitions = allTransitions(allPairs, s)
-print("Computing chance of finding a specific transition in a suite.")
-"""percentages = [0, 0, 0, 0]
+print("Number of valid transitions : " + str(len(allTransitions)))
+"""print("Computing chance of finding a specific transition in a suite.")
+percentages = [0, 0, 0, 0]
 it = 5
 for transition in allTransitions[0:it]:
     for mode in modes:
