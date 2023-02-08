@@ -25,7 +25,7 @@ def findReversePair(pair, pairs):
     return False
 
 
-def computeTestSuite(iteration):
+def computeTestSuite(iteration, s):
     filepath = "../data/RIS/TestSuitesComplete/testSuite"+str(iteration)+".pkl"
     if os.path.exists(filepath):
         testSuite = readSuite(filepath)
@@ -44,7 +44,7 @@ def findSuitableCITsuite(s, errors, search="stats", mode="random", verbose=True)
     iteration = 0
     while iteration < maxIterations:
         iteration += 1
-        testSuite = computeTestSuite(iteration)
+        testSuite = computeTestSuite(iteration, s)
         transitions = testSuite.transitionPairCoverage(mode)
 
         errorFound = float(len(errors))
