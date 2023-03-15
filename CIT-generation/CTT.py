@@ -170,7 +170,7 @@ def discoverCore(solver, valuesForFactors):
     return core
 
 
-"""Main algorithm of this module. Implementation of a greedy CIt-CTT algorithm, and returns a covering array."""
+"""Main algorithm of this module. Implementation of a greedy CIT-CTT algorithm, and returns a covering array."""
 def greedyCTT(systemData, verbose=False, numCandidates=30, testsEvolution = None, veryUglyWay = []):
     mySATsolver = SATSolver(systemData)
     valuesForFactors = systemData.getValuesForFactors()
