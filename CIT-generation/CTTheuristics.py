@@ -2,7 +2,7 @@ from SATSolver import SATSolver
 import random
 
 class BuildingCTT:
-    def __init__(self, systemData, verbose=False, numCandidates=50):
+    def __init__(self, systemData, verbose=False, numCandidates=50, interaction_filter=True, weight_lookahead=0.5, weight_comparative=0.5):
         self.verbose = verbose
         self.numCandidates = numCandidates
         self.systemData = systemData
@@ -12,12 +12,13 @@ class BuildingCTT:
         for key in self.core.keys():
             del self.valuesForFactors[key]
 
-        self.lookahead_weight = 0.7
-        self.comparative_weight = 1.0
+        self.weight_lookahead = weight_lookahead
+        self.weight_comparative = weight_comparative
+        self.interaction_filter = interaction_filter
 
         self.coveringArray = []
         self.numTests = 0
-        self.unCovSets, self.unCovTransitions, self.unCovPairsCount = self.computeSetToCover("interactionfilter")
+        self.unCovSets, self.unCovTransitions, self.unCovPairsCount = self.computeSetToCover()
         if verbose:
             print("Number of uncovered interactions and transitions : " + str(len(self.unCovSets)) + " - " + str(len(self.unCovTransitions)))
         self.totalNumberOfPairs = len(self.unCovSets) + len(self.unCovTransitions)
@@ -27,15 +28,16 @@ class BuildingCTT:
     def computeScores(self, prevTestCase):
         tempUnCovPairsCnt = self.unCovPairsCount.copy()
         for transition in self.unCovTransitions:
+            # if transition cannot be covered.
             if prevTestCase is None or transition[0][1] == prevTestCase[transition[0][0]] or transition[1][1] == prevTestCase[transition[1][0]]:
                 tempUnCovPairsCnt[transition[0]] = tempUnCovPairsCnt[transition[0]] - 1
                 tempUnCovPairsCnt[transition[1]] = tempUnCovPairsCnt[transition[1]] - 1
 
                 if prevTestCase is not None:
                     oppositePair = (transition[0][0], -1*transition[0][1])
-                    tempUnCovPairsCnt[oppositePair] = tempUnCovPairsCnt[oppositePair] + self.lookahead_weight
+                    tempUnCovPairsCnt[oppositePair] = tempUnCovPairsCnt[oppositePair] + self.weight_lookahead
                     oppositePair = (transition[1][0], -1*transition[1][1])
-                    tempUnCovPairsCnt[oppositePair] = tempUnCovPairsCnt[oppositePair] + self.lookahead_weight
+                    tempUnCovPairsCnt[oppositePair] = tempUnCovPairsCnt[oppositePair] + self.weight_lookahead
                 # Following is not logical.
                 """if prevTestCase is not None and transition[0][1] == prevTestCase[transition[0][0]]:
                     oppositePair = (transition[0][0], -1*transition[0][1])
@@ -48,7 +50,7 @@ class BuildingCTT:
 
         # Comparative scores.
         for pair in tempUnCovPairsCnt:
-            tempUnCovPairsCnt[pair] = tempUnCovPairsCnt[pair] - self.comparative_weight*tempUnCovPairsCnt[(pair[0], -pair[1])]
+            tempUnCovPairsCnt[pair] = tempUnCovPairsCnt[pair] - self.weight_comparative*tempUnCovPairsCnt[(pair[0], -pair[1])]
 
         return tempUnCovPairsCnt
 
@@ -76,13 +78,15 @@ class BuildingCTT:
                 else:
                     # LOOKAHEAD SCORES IF WE PREPARE FOR A FUTURE TRANSITION BY USING THIS VALUE.
                     condition = transition[0] == (f, -v)
-                    condition = condition and transition[1][0] in currentTestCase and currentTestCase[transition[1][0]] == -1 * transition[1][1]
+                    if transition[1][0] in currentTestCase:
+                        condition = condition and currentTestCase[transition[1][0]] == -1 * transition[1][1]
 
                     condition2 = transition[1] == (f, -v)
-                    condition2 = condition2 and transition[0][0] in currentTestCase and currentTestCase[transition[0][0]] == -1 * transition[0][1]
+                    if transition[0][0] in currentTestCase:
+                        condition2 = condition2 and currentTestCase[transition[0][0]] == -1 * transition[0][1]
 
                     if condition or condition2:
-                        score += self.lookahead_weight
+                        score += self.weight_lookahead
 
             if score > bestScore:
                 bestScore = score
@@ -115,7 +119,7 @@ class BuildingCTT:
                 else:
                     # LOOKAHEAD SCORES IF WE PREPARE FOR A FUTURE TRANSITION BY USING THIS TEST CASE.
                     if testCase[transition[0][0]] == -transition[0][1] and testCase[transition[1][0]] == -transition[1][1]:
-                        lookaheadscore += self.lookahead_weight
+                        lookaheadscore += self.weight_lookahead
 
             scores.append(score)
             lookaheads.append(lookaheadscore)
@@ -185,7 +189,7 @@ class BuildingCTT:
         return core
 
     """Computes every possible pair in valuesForFactors, but removes those not compatible with the SAT solver"""
-    def computeSetToCover(self, heuristics="basic"):
+    def computeSetToCover(self):
         unCovSets = []
         unCovTransitions = []
         unCovPairsCount = {}
@@ -199,7 +203,7 @@ class BuildingCTT:
 
                         if self.solver.checkSAT([pair1[1], pair2[1]]):
                             # Each set is a [Factor, Value, Factor, Value, ...] tuple
-                            if "basic" in heuristics:
+                            if not self.interaction_filter:
                                 unCovSets.append([pair1, pair2])
                                 if pair1 not in unCovPairsCount:
                                     unCovPairsCount[pair1] = 1.0
@@ -214,7 +218,7 @@ class BuildingCTT:
                                     unCovTransitions.append([pair1, pair2])
                                     unCovPairsCount[pair1] += 1
                                     unCovPairsCount[pair2] += 1
-                            elif "interactionfilter" in heuristics:
+                            elif self.interaction_filter:
                                 if pair1 not in unCovPairsCount:
                                     unCovPairsCount[pair1] = 1
                                 else:

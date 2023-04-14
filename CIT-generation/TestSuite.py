@@ -23,11 +23,10 @@ def storeSuite(suite, filePath):
     f.close()
 
 class TestSuite:
-    def __init__(self, systemData, suite):
+    def __init__(self, systemData, suite, computeRearrangements=False):
         self.suiteUnordered = suite
-        self.suiteMinimized = self.minimizeTestEffort(suite, systemData.getContexts())
-        self.suiteMaximized = self.maximizeDissimilarity(suite, systemData.getFeatures())
-        self.suiteRandomOrder = self.randomOrder()
+        self.computeRearrangements = computeRearrangements
+        self.systemData = systemData
         self.contexts = systemData.getContexts()
         self.features = systemData.getFeatures()
         self.coreContexts = systemData.getContexts()
@@ -39,9 +38,15 @@ class TestSuite:
             for f in self.coreFeatures:
                 if testCase[f] < 0:
                     self.coreFeatures.remove(f)
+
         self.variabilities = self.features.copy()
         for f in self.coreFeatures:
             self.variabilities.remove(f)
+
+        if computeRearrangements:
+            self.suiteMinimized = self.minimizeTestEffort(suite, systemData.getContexts())
+            self.suiteMaximized = self.maximizeDissimilarity(suite, systemData.getFeatures())
+            self.suiteRandomOrder = self.randomOrder()
 
     def compareFeatureSwitches(self):
         minimizedFeatureSwitches = numberOfChangements(self.suiteMinimized, self.features)
@@ -72,6 +77,56 @@ class TestSuite:
         print("Activation order of test " + str(correspondingNumber) + ", unordered test suite: ")
         # print(self.suite[correspondingNumber])
         print(self.activationOrder(correspondingNumber, self.suiteMaximized))
+
+    def interactionTransitionCoverageEvolution(self):
+        valuesForFactors = self.systemData.getValuesForFactors()
+        solver = SATSolver(self.systemData)
+        unCovInteractions = []
+        unCovTransitions = []
+        factors = list(valuesForFactors.keys())
+        for i in range(len(factors) - 1):
+            for j in range(len(valuesForFactors[factors[i]])):
+                pair1 = (factors[i], valuesForFactors[factors[i]][j])
+                for i2 in range(i + 1, len(factors)):
+                    for j2 in range(len(valuesForFactors[factors[i2]])):
+                        pair2 = (factors[i2], valuesForFactors[factors[i2]][j2])
+
+                        if solver.checkSAT([pair1[1], pair2[1]]):
+                            # Each set is a [Factor, Value, Factor, Value, ...] tuple
+                            unCovInteractions.append([pair1, pair2])
+                            if solver.checkSAT([-1*pair1[1], -1*pair2[1]]):
+                                unCovTransitions.append([pair1, pair2])
+
+        maxInteractions = len(unCovInteractions)
+        maxTransitions = len(unCovTransitions)
+        interactionEvolution = []
+        transitionEvolution = []
+        suite = self.getUnorderedTestSuite()
+        factors = list(valuesForFactors.keys())
+        prevTestCase = None
+        for testCase in suite:
+            interactions = []
+            for i in range(len(factors)-1):
+                pair1 = (factors[i], testCase[factors[i]])
+                for j in range(i+1, len(factors)):
+                    pair2 = (factors[j], testCase[factors[j]])
+                    interactions.append([pair1, pair2])
+            transitions = []
+            if prevTestCase is not None:
+                transitions = [pair for pair in interactions if prevTestCase[pair[0][0]] != pair[0][1] and prevTestCase[pair[1][0]] != pair[1][1]]
+            prevTestCase = testCase
+
+            for interaction in interactions:
+                if interaction in unCovInteractions:
+                    unCovInteractions.remove(interaction)
+            interactionEvolution.append(100.0-100.0*len(unCovInteractions)/maxInteractions)
+            for transition in transitions:
+                if transition in unCovTransitions:
+                    unCovTransitions.remove(transition)
+            transitionEvolution.append(100.0-100.0*len(unCovTransitions)/maxTransitions)
+        if len(unCovInteractions) != 0 or len(unCovTransitions) != 0:
+            print("WARNING : IN COMPUTING COVERAGE EVOLUTION, COVERAGE DID NOT REACH 100%.")
+        return interactionEvolution, transitionEvolution
 
     # Computes all transitions covered in this test suite, with the order being specified.
     def transitionPairCoverage(self, mode):
@@ -110,7 +165,6 @@ class TestSuite:
                         transitions.append(pair)
             prev = test
         return transitions
-
 
     def activationCoverage(self, suite):
         featurePairs = dict.fromkeys([f for f in self.features if f not in self.coreFeatures])
@@ -354,6 +408,12 @@ class TestSuite:
     def getRandomTestSuite(self):
         return self.suiteRandomOrder
 
+    def getUnorderedTestSuite(self):
+        return self.suiteUnordered
+
+    def getLength(self):
+        return len(self.suiteUnordered)
+
     def getSpecificOrderSuite(self, mode):
         if mode == "minimized":
             return self.suiteMinimized
@@ -425,6 +485,8 @@ def singleTest():
     testSuite.compareFeatureSwitches()
 
     testSuite.findConfiguration(10)
+
+
 
 def allPairs(systemData, filtered=True):
     mySATsolver = SATSolver(systemData)

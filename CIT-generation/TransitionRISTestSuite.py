@@ -1,7 +1,7 @@
 import os
 import time
 
-from TestSuiteCostComparisons import *
+from TestSuite import *
 
 def allTransitions(pairs, s, filterForFeatures=True):
     transitions = []
