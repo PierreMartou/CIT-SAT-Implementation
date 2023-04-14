@@ -71,6 +71,10 @@ def oneNegativeRawClause(negative, positives):
         clause.append(positive)
     return [clause]
 
+
+def exactClause(parent, clause):
+    clauses = []
+
 switcher = {
     'optional': optionalConstraint,
     'mandatory': mandatoryConstraint,

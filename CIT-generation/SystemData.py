@@ -2,13 +2,13 @@ import re
 
 
 class SystemData:
-    def __init__(self, contextsFile=None, featuresFile=None, mappingFile=None):
-        if featuresFile is None:
+    def __init__(self, contextsFile=None, featuresFile=None, mappingFile=None, extraConstraints=None):
+        """if featuresFile is None:
             featuresFile = 'features.txt'
         if contextsFile is None:
             contextsFile = 'contexts.txt'
         if mappingFile is None:
-            mappingFile = 'mapping.txt'
+            mappingFile = 'mapping.txt'"""
 
         # Read files for nodes
         self.features = []
@@ -26,8 +26,10 @@ class SystemData:
 
         self.finalNodes = ['dummy', 'TreeRoot'] + list(self.contexts) + list(self.features)
 
-        if "Feature" not in self.finalNodes or "Context" not in self.finalNodes:
-            print("WARNING: the root of your feature model should always be \"Feature\". The root of your context model should always be \"Context\".")
+        if "Feature" not in self.finalNodes:
+            print("WARNING: The root of your feature model should always be \"Feature\".")
+        if "Context" not in self.finalNodes and contextsFile is not None:
+            print("WARNING: The root of your context model should always be \"Context\".")
 
         for feature in self.features:
             if feature in self.contexts:
@@ -36,6 +38,10 @@ class SystemData:
         # Read mapping file
         self.mappingConstraints = []
         self.initMapping(mappingFile)
+
+        # Read extra constraints
+        self.extraConstraints = []
+        self.initExtraConstraints(extraConstraints)
 
         # We add a 'dummy' because a SAT solver begins at 1
         self.allConstraints = [('root', 'TreeRoot', [''])]\
@@ -96,7 +102,6 @@ class SystemData:
 
     def initContextConstraint(self, contextFile):
         if contextFile is None:
-            print("No constraints provided for contexts.")
             self.contextConstraints = []
         else:
             f = open(contextFile, "r").readlines()
@@ -160,8 +165,6 @@ class SystemData:
                 for clause in contextsClauses:
                     self.mappingConstraints.append(('oneNegativeRawClause', feature, clause))
 
-
-
     def toIndex(self, node):
         if isinstance(node, str):
             if node in self.finalNodes:
@@ -189,3 +192,16 @@ class SystemData:
 
     def getMappingConstraints(self):
         return self.mappingConstraints.copy()
+
+    def initExtraConstraints(self, extraConstraints):
+        if extraConstraints is None:
+            print("No extra constraints provided.")
+            self.extraConstraints = []
+        else:
+            f = open(extraConstraints, "r").readlines()
+            for line in f:
+                clause = [c.strip() for c in line.replace("~", "-").split("or")]
+                if len(clause) == 1:
+                    clause[0]
+
+                self.extraConstraints.append(('exactClause', line))
