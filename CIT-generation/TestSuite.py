@@ -44,7 +44,10 @@ class TestSuite:
             self.variabilities.remove(f)
 
         if computeRearrangements:
-            self.suiteMinimized = self.minimizeTestEffort(suite, systemData.getContexts())
+            if len(systemData.getContexts()) != 0:
+                self.suiteMinimized = self.minimizeTestEffort(suite, systemData.getContexts())
+            else:
+                self.suiteMinimized = self.minimizeTestEffort(suite, systemData.getFeatures())
             self.suiteMaximized = self.maximizeDissimilarity(suite, systemData.getFeatures())
             self.suiteRandomOrder = self.randomOrder()
 
@@ -101,6 +104,7 @@ class TestSuite:
         maxTransitions = len(unCovTransitions)
         interactionEvolution = []
         transitionEvolution = []
+        switchesEvolution = []
         suite = self.getUnorderedTestSuite()
         factors = list(valuesForFactors.keys())
         prevTestCase = None
@@ -114,6 +118,7 @@ class TestSuite:
             transitions = []
             if prevTestCase is not None:
                 transitions = [pair for pair in interactions if prevTestCase[pair[0][0]] != pair[0][1] and prevTestCase[pair[1][0]] != pair[1][1]]
+                switchesEvolution.append(sum([1 for f in factors if prevTestCase[f] != testCase[f]]))
             prevTestCase = testCase
 
             for interaction in interactions:
@@ -126,7 +131,7 @@ class TestSuite:
             transitionEvolution.append(100.0-100.0*len(unCovTransitions)/maxTransitions)
         if len(unCovInteractions) != 0 or len(unCovTransitions) != 0:
             print("WARNING : IN COMPUTING COVERAGE EVOLUTION, COVERAGE DID NOT REACH 100%.")
-        return interactionEvolution, transitionEvolution
+        return interactionEvolution, transitionEvolution, switchesEvolution
 
     # Computes all transitions covered in this test suite, with the order being specified.
     def transitionPairCoverage(self, mode):
@@ -423,8 +428,17 @@ class TestSuite:
             return self.suiteUnordered
         elif mode == "random":
             return self.suiteRandomOrder
-        print("MODE NOT RECOGNIZED")
+        print("MODE NOT RECOGNIZED: "+str(mode))
         return None
+
+    def getCost(self, mode="unordered"):
+        suite = self.getSpecificOrderSuite(mode)
+        cost = 0
+        prevTest = suite[0]
+        for t in suite[1:]:
+            cost += self.effortDistance(prevTest, t)
+            prevTest = t
+        return cost
 
     def printLatexTransitionForm(self, mode):
         suite = self.getSpecificOrderSuite(mode)

@@ -9,7 +9,7 @@ import math
 import numpy as np
 from numpy import polyval, polyfit
 # was scipy instead of numpy
-from matplotlib import pyplot as plt
+import matplotlib.pyplot as plt
 """Uses CITSAT() and displays the results.
 """
 def testCITSATData():
