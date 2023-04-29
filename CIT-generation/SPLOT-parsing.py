@@ -1,3 +1,6 @@
+from SystemData import SystemData
+from TestSuite import *
+from SATSolver import SATSolver
 
 def writeTextFiles(filename):
     featureModel, constraints = getContents(filename)
@@ -9,16 +12,16 @@ def writeTextFiles(filename):
         for relation in relations:
             txtFile.write(relation+"\n")
 
-    constraintFileName = filename.replace("xml", "txt").replace("source", "txt-constraints")
+    constraintFileName = filename.replace("xml", "txt").replace("source", "txtconstraints")
     constraintFile = open(constraintFileName, "w")
 
     for index in range(len(constraints)):
         constraint = getConstraint(constraints, index)
-        constraintFile.write(constraint)
+        constraintFile.write(constraint+"\n")
 
 def getContents(filename):
     file = open(filename, "r")
-    content = file.readlines()
+    content = [c.lower().replace("connector", "connectr").replace("horizontal", "hrizotanl") for c in file.readlines()]
     startFM = 0
     line = content[startFM]
     while line != "<feature_tree>\n":
@@ -31,19 +34,34 @@ def getContents(filename):
     featureModel = content[startFM+1:endFM]
 
     root = findUniqueID(featureModel[0])
-    featureModel[0] = featureModel[0].replace(root, 'Feature')
+    begin = featureModel[0].find("(")
+    end = featureModel[0].find(")")
+    featureModel[0] = featureModel[0][:begin+1] + "Feature" + featureModel[0][end:]
 
-    startConstraint = endFM + 1
-    endConstraint = startConstraint
+    startConstraint = endFM + 2
     constraints = []
-    while line != "</constraints>\n":
-        endConstraint += 1
-        line = content[endConstraint]
-        if root in line.split("OR"):
-            pass
-            #do something here
+    line = content[startConstraint].replace(" ", "").strip()
+    while line != "</constraints>":
+        if root in line:
+            parts = line.split(":")
+            conditions = parts[1].split("or")
+            line = parts[0] + ":"
+            for c in conditions:
+                finalC = c
+                if c[0] == "~":
+                    finalC = c[1:]
+                    line += "~"
+                if finalC == root:
+                    line += "Feature"
+                else:
+                    line += finalC
+                line += "or"
+            line = line[:-2]
+
+        startConstraint += 1
         constraints.append(line)
-    constraints = content[startConstraint+1:endConstraint]
+        line = content[startConstraint].replace(" ", "").strip()
+
     return featureModel, constraints
 
 
@@ -54,6 +72,8 @@ def getConstraint(constraints, index):
 def getRelation(featureModel, index):
     line = featureModel[index]
     parent = findUniqueID(line)
+    if "or" in parent:
+        print("RAISE ALERT : WORD OR IS FOUND IN UNIQUE ID : " + str(parent))
     relations = []
 
     level = line.count("\t")
@@ -61,6 +81,7 @@ def getRelation(featureModel, index):
     tempLine = featureModel[tempIndex]
     tempLevel = tempLine.count("\t")
 
+    # this line is part of a group of feature, alt or or, which is already taken into account
     if tempLine.replace("\t", "")[:2] == ": ":
         return []
 
@@ -96,13 +117,18 @@ def getRelation(featureModel, index):
     return relations
 
 
-def getOneLevelBelow(featureModel, line):
-    pass
-
-
 def findUniqueID(line):
     return line[line.find("(")+1:line.find(")")]
 
 
-# getSystemData("../data/SPLOT/SPLOT-source/SPLOT-3CNF-FM-500-50-1.00-SAT-10.xml")
-writeTextFiles("../data/SPLOT/SPLOT-source/model_20110516_1331478109.xml")
+if __name__ == '__main__':
+    # getSystemData("../data/SPLOT/SPLOT-source/SPLOT-3CNF-FM-500-50-1.00-SAT-10.xml")
+    directory = "../data/SPLOT/SPLOT-source/"
+
+    for filename in os.listdir(directory):
+        f = os.path.join(directory, filename)
+        writeTextFiles(f)
+        #s = SystemData(featuresFile="../data/SPLOT/SPLOT-txt/TESTFILE.txt", extraConstraints="../data/SPLOT/SPLOT-txtconstraints/TESTFILE.txt")
+        #solver = SATSolver(s)
+
+

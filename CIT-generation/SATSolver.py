@@ -6,16 +6,21 @@ class SATSolver:
     def __init__(self, systemData):
         self.systemData = systemData
         if self.systemData is None:
-            print("No data provided. Impossible to model a SAT solver.")
+            print("No data provided. Impossible to generate a SAT solver.")
 
         self.solver = Glucose3(incr=True)
 
         self.clauses = []
+
+        # Adding clauses extracted from system data constraints from relations.
         for constraint in self.systemData.getConstraints():
             helper = switcher.get(constraint[0].lower(), lambda: print("Invalid constraint."))
             newClauses = helper(self.systemData.toIndex(constraint[1]), self.systemData.toIndex(constraint[2]))
             self.clauses = self.clauses + newClauses
+        # Adding clauses already in CNF form.
+        self.clauses = self.clauses + self.systemData.getCNFConstraints()
 
+        # print(self.clauses)
         for clause in self.clauses:
             self.solver.add_clause(clause)
 

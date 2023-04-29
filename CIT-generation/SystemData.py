@@ -56,7 +56,7 @@ class SystemData:
 
     def initFeatures(self, featureFile):
         if featureFile is None:
-            print("No features provided.")
+            # print("No features provided.")
             self.features = []
         else:
             f = open(featureFile, "r").readlines()
@@ -72,7 +72,7 @@ class SystemData:
 
     def initContexts(self, contextsFile):
         if contextsFile is None:
-            print("No contexts provided.")
+            # print("No contexts provided.")
             self.contexts = []
         else:
             f = open(contextsFile, "r").readlines()
@@ -115,7 +115,7 @@ class SystemData:
 
     def initMapping(self, mappingFile):
         if mappingFile is None:
-            print("No mapping provided.")
+            # print("No mapping provided.")
             self.mappingConstraints = []
         else:
             f = open(mappingFile, "r").readlines()
@@ -193,15 +193,24 @@ class SystemData:
     def getMappingConstraints(self):
         return self.mappingConstraints.copy()
 
+    def getCNFConstraints(self):
+        return self.extraConstraints.copy()
+
     def initExtraConstraints(self, extraConstraints):
         if extraConstraints is None:
-            print("No extra constraints provided.")
+            # print("No extra constraints provided.")
             self.extraConstraints = []
         else:
             f = open(extraConstraints, "r").readlines()
             for line in f:
                 clause = [c.strip() for c in line.replace("~", "-").split("or")]
-                if len(clause) == 1:
-                    clause[0]
-
-                self.extraConstraints.append(('exactClause', line))
+                newClause = []
+                for c in clause:
+                    newC = None
+                    if c[0] == '-':
+                        newC = -1
+                        newC *= (self.toIndex(c[1:]))
+                    else:
+                        newC = self.toIndex(c)
+                    newClause.append(newC)
+                self.extraConstraints.append(newClause)

@@ -137,6 +137,17 @@ def CITSAT(systemData, verbose=False, numCandidates=30, testsEvolution = None, v
         for key in core.keys():
             del valuesForFactors[key]
 
+    if len(valuesForFactors) == 0:
+        return [core]
+
+    if len(valuesForFactors) == 1:
+        dupl1 = core.copy()
+        dupl2 = core.copy()
+        key = list(valuesForFactors.keys())[0]
+        dupl1[key] = valuesForFactors[key][0]
+        dupl2[key] = valuesForFactors[key][1]
+        return [dupl1, dupl2]
+
     coveringArray = []
     numTests = 0
     numPropagation = 0

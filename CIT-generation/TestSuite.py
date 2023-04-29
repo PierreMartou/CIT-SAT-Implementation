@@ -2,14 +2,33 @@ import os
 import pickle
 import time
 from random import randrange
-
-# from Lib import pickle
-
 from CITSAT import CITSAT
 from RandomSampling import randomSampling, computeCoverage, invalidChance
 from ResultRefining import printCoveringArray, numberOfChangements
 from SystemData import SystemData
 from SATSolver import SATSolver
+from CTT_heuristics import BuildingCTT
+
+
+def computeCITSuite(fpath, iteration, s, recompute=False):
+    filepath = fpath + str(iteration)+".pkl"
+    if os.path.exists(filepath) and not recompute:
+        testSuite = readSuite(filepath)
+    else:
+        testSuite = TestSuite(s, CITSAT(s, False, 30), computeRearrangements=True)
+        storeSuite(testSuite, filepath)
+    return testSuite
+
+
+def computeCTTSuite(fpath, iteration, s, interaction_filter=False, weight_lookahead=0, weight_comparative=0, recompute=False):
+    filepath = fpath + str(iteration)+".pkl"
+    if os.path.exists(filepath) and not recompute:
+        testSuite = readSuite(filepath)
+    else:
+        t = BuildingCTT(s, verbose=False, numCandidates=30, interaction_filter=interaction_filter, weight_lookahead=weight_lookahead, weight_comparative=weight_comparative)
+        testSuite = TestSuite(s, t.getCoveringArray())
+        storeSuite(testSuite, filepath)
+    return testSuite
 
 
 def readSuite(filePath):
@@ -24,6 +43,8 @@ def storeSuite(suite, filePath):
 
 class TestSuite:
     def __init__(self, systemData, suite, computeRearrangements=False):
+        if len(suite) == 0:
+            print("WARNING: Creating a Test Suite with no elements.")
         self.suiteUnordered = suite
         self.computeRearrangements = computeRearrangements
         self.systemData = systemData
@@ -343,9 +364,11 @@ class TestSuite:
     """ Sorts the array to maximize dissimilarity between test scenarios.
     """
     def maximizeDissimilarity(self, givenArray, nodes):
+        if len(givenArray) == 1:
+            return givenArray
         array = givenArray.copy()
         distanceMatrix = []
-        bestScore = 0
+        bestScore = -1
         bestPair = (0, 0)
         index = 0
         for testCase in array:
@@ -501,7 +524,6 @@ def singleTest():
     testSuite.findConfiguration(10)
 
 
-
 def allPairs(systemData, filtered=True):
     mySATsolver = SATSolver(systemData)
     valuesForFactors = systemData.getValuesForFactors()
@@ -524,6 +546,30 @@ def allPairs(systemData, filtered=True):
                 cores.append(candidate)
         unCovSets = [unCovSet for unCovSet in unCovSets if unCovSet[0][0] not in cores and unCovSet[1][0] not in cores]
     return unCovSets
+
+
+def allTransitions(s, filterForFeatures=True):
+    pairs = allPairs(s)
+    transitions = []
+    for i in range(len(pairs)):
+        pair = pairs[i]
+        if filterForFeatures and (pair[0][0] not in s.getFeatures() or pair[1][0] not in s.getFeatures()):
+            continue
+        if findReversePair(pair, pairs):
+            firstTransition = "+" if pair[0][1] > 0 else "-"
+            firstTransition += pair[0][0]
+            secondTransition = "+" if pair[1][1] > 0 else "-"
+            secondTransition += pair[1][0]
+            transitions.append((firstTransition, secondTransition))
+    return transitions
+
+
+def findReversePair(pair, pairs):
+    for p in pairs:
+        if p[0][1] == -1 * pair[0][1] and p[1][1] == -1 * pair[1][1]:
+            return True
+    return False
+
 
 def testingScores():
     models = "../data/enlarged/"

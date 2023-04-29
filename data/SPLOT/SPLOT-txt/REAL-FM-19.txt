@@ -1,0 +1,26 @@
+Feature/Mandatory/	:m services
+	:m services/Mandatory/graph_manipulation
+	:m services/Optional/do_undo_redo
+	:m services/Optional/zoom_inout
+graph_manipulation/Mandatory/			:m delete
+graph_manipulation/Mandatory/			:m select
+graph_manipulation/Mandatory/			:m add
+graph_manipulation/Mandatory/			:m move
+graph_manipulation/Optional/compose
+graph_manipulation/Optional/layer_adjust
+			:m select/Mandatory/				:m selection_mode
+				:m selection_mode/Or/						: increment_selection-						: non_increment_selection
+			:m add/Mandatory/				:m entity_add
+			:m add/Mandatory/				:m connectr_add
+			:m move/Mandatory/				:m moving_mode
+			:m move/Optional/				:o moving_constraint
+				:m moving_mode/Or/						: outline_moving-						: content_moving
+				:o moving_constraint/Or/						: hrizotanl_constraint-						: vertical_constraint
+layer_adjust/Mandatory/				:m up_layer
+layer_adjust/Mandatory/				:m down_layer
+do_undo_redo/Mandatory/			:m select_do_undo_redo
+do_undo_redo/Mandatory/			:m add_do_undo_redo
+do_undo_redo/Mandatory/			:m delete _do_undo_redo
+do_undo_redo/Mandatory/			:m move_do_undo_redo
+do_undo_redo/Optional/compose_do_undo_redo
+do_undo_redo/Optional/layer_adjust_do_undo_redo
