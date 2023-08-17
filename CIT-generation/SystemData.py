@@ -13,7 +13,6 @@ class SystemData:
         # Read files for nodes
         self.features = []
         self.initFeatures(featuresFile)
-
         self.contexts = []
         self.initContexts(contextsFile)
 

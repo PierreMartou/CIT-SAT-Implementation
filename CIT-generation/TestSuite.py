@@ -10,22 +10,22 @@ from SATSolver import SATSolver
 from CTT_heuristics import BuildingCTT
 
 
-def computeCITSuite(fpath, iteration, s, recompute=False):
+def computeCITSuite(fpath, iteration, s, candidates=30, recompute=False):
     filepath = fpath + str(iteration)+".pkl"
     if os.path.exists(filepath) and not recompute:
         testSuite = readSuite(filepath)
     else:
-        testSuite = TestSuite(s, CITSAT(s, False, 30), computeRearrangements=True)
+        testSuite = TestSuite(s, CITSAT(s, False, candidates), computeRearrangements=True)
         storeSuite(testSuite, filepath)
     return testSuite
 
 
-def computeCTTSuite(fpath, iteration, s, interaction_filter=False, weight_lookahead=0, weight_comparative=0, recompute=False):
+def computeCTTSuite(fpath, iteration, s, candidates=30, interaction_filter=False, weight_lookahead=0, weight_comparative=0, recompute=False):
     filepath = fpath + str(iteration)+".pkl"
     if os.path.exists(filepath) and not recompute:
         testSuite = readSuite(filepath)
     else:
-        t = BuildingCTT(s, verbose=False, numCandidates=30, interaction_filter=interaction_filter, weight_lookahead=weight_lookahead, weight_comparative=weight_comparative)
+        t = BuildingCTT(s, verbose=False, numCandidates=candidates, interaction_filter=interaction_filter, weight_lookahead=weight_lookahead, weight_comparative=weight_comparative)
         testSuite = TestSuite(s, t.getCoveringArray())
         storeSuite(testSuite, filepath)
     return testSuite
@@ -546,6 +546,21 @@ def allPairs(systemData, filtered=True):
                 cores.append(candidate)
         unCovSets = [unCovSet for unCovSet in unCovSets if unCovSet[0][0] not in cores and unCovSet[1][0] not in cores]
     return unCovSets
+
+def transitionExist(s):
+    mySATsolver = SATSolver(s)
+    valuesForFactors = s.getValuesForFactors()
+    factors = list(valuesForFactors.keys())
+    for i in range(len(factors) - 1):
+        for j in range(len(valuesForFactors[factors[i]])):
+            pair1 = (factors[i], valuesForFactors[factors[i]][j])
+            for i2 in range(i + 1, len(factors)):
+                for j2 in range(len(valuesForFactors[factors[i2]])):
+                    pair2 = (factors[i2], valuesForFactors[factors[i2]][j2])
+
+                    if mySATsolver.checkSAT([pair1[1], pair2[1]]) and mySATsolver.checkSAT([-1*pair1[1], -1*pair2[1]]):
+                        return True
+    return False
 
 
 def allTransitions(s, filterForFeatures=True):

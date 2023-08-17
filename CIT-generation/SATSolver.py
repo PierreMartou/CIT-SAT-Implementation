@@ -3,6 +3,7 @@ from ManualCNFConversion import *
 
 
 class SATSolver:
+    count = 0
     def __init__(self, systemData):
         self.systemData = systemData
         if self.systemData is None:
@@ -38,9 +39,18 @@ class SATSolver:
             print(toPrint)
 
     def checkSAT(self, values=None):
+        SATSolver.count += 1
         if values is None:
             values = []
         return self.solver.solve(assumptions=values)
+
+    @staticmethod
+    def getCount():
+        return SATSolver.count
+
+    @staticmethod
+    def resetCount():
+        SATSolver.count = 0
 
     def getModel(self):
         return self.solver.get_model()

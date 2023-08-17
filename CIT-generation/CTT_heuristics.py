@@ -2,7 +2,7 @@ from SATSolver import SATSolver
 import random
 
 class BuildingCTT:
-    def __init__(self, systemData, verbose=False, numCandidates=50, interaction_filter=True, weight_lookahead=0.5, weight_comparative=0.5):
+    def __init__(self, systemData, verbose=False, numCandidates=30, interaction_filter=True, weight_lookahead=0.5, weight_comparative=0.5):
         self.verbose = verbose
         self.numCandidates = numCandidates
         self.systemData = systemData
@@ -49,10 +49,12 @@ class BuildingCTT:
         # INTERACTIONFILTER IS ALREADY COMPUTED WHEN COMPUTING SET TO COVER.
 
         # Comparative scores.
+        reTempUnCovPairsCnt = {}
         for pair in tempUnCovPairsCnt:
-            tempUnCovPairsCnt[pair] = tempUnCovPairsCnt[pair] - self.weight_comparative*tempUnCovPairsCnt[(pair[0], -pair[1])]
+            #tempUnCovPairsCnt[pair] = tempUnCovPairsCnt[pair] - self.weight_comparative*tempUnCovPairsCnt[(pair[0], -pair[1])]
+            reTempUnCovPairsCnt[pair] = tempUnCovPairsCnt[pair] - self.weight_comparative*tempUnCovPairsCnt[(pair[0], -pair[1])]
 
-        return tempUnCovPairsCnt
+        return reTempUnCovPairsCnt
 
     def selectSpecificBestValue(self, f, currentTestCase, prevTestCase):
         candidates = []
