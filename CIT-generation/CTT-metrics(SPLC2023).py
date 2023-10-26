@@ -46,9 +46,11 @@ def graphCoverageEvolution(iterations, mode=None, plot=None):
     s = SystemData(featuresFile=models + 'features.txt')
     font = {'size': 16}
     plt.rc('font', **font)
-    label = ["Baseline", "Improved"]
-    lines = ["--", "-"]
-    lines2 = ["-.", ":"]
+    # plt.set_tight_layout(True)
+    #label = ["Baseline", "Improved"]
+    label = ["Baseline algorithm"]
+    lines = ["-"] #, "--"]
+    lines2 = ["-."] #, ":"]
     linesCoverage = [lines, lines2]
 
     if mode is None:
@@ -101,8 +103,7 @@ def graphCoverageEvolution(iterations, mode=None, plot=None):
             y1 = [0] + interactionEvolutionAverage[:cutoffy1] + [100]
 
             cutoffy2 = sum([1 for i in transitionEvolutionAverage if i < 100.0])
-            y2 = (transitionEvolutionAverage[:cutoffy2])
-            y2.append(100)
+            y2 = transitionEvolutionAverage[:cutoffy2] + [100]
 
             switches_cutoff = sum([1 for i in switchesEvolutionAverage if i > 0.05])
             y3 = switchesEvolutionAverage[:switches_cutoff]
@@ -144,7 +145,7 @@ def graphCoverageEvolution(iterations, mode=None, plot=None):
                 # test = [1, 3, 5, 7, 9, 11, 13, 15]
                 # plt.xticks(test, test)
     if plot == 0:
-        plt.savefig("../results/coverageEvolution.pdf")
+        plt.savefig("../results/coverageEvolution.pdf",bbox_inches='tight')
     elif plot == 1:
         plt.savefig("../results/switchesEvolution.pdf")
     plt.show()
@@ -172,11 +173,33 @@ def getCITSizeAverage(iterations):
     testSuite.printLatexTransitionForm(mode="unordered")
 """
 
-
-def SPLOTmodels():
+def showAllSPLOTModels():
     modelFiles = "../data/SPLOT/SPLOT-txt/"
     constraintsFiles = "../data/SPLOT/SPLOT-txtconstraints/"
-    rangeCategory = [[10, 12], [12, 15], [15, 20], [20, 25], [25, 30], [30, 40], [40, 51]]
+    sizes = {}
+    for filename in os.listdir(modelFiles):
+        txt = os.path.join(modelFiles, filename)
+        txtConstraints = os.path.join(constraintsFiles, filename)
+        s = SystemData(featuresFile=txt, extraConstraints=txtConstraints)
+        size = len(s.getFeatures())
+        if size not in sizes:
+            sizes[size] = 1
+        else:
+            sizes[size] += 1
+    keys = list(sizes.keys())
+    keys.sort()
+    missingkeys = [i for i in range(10, 100) if i not in keys]
+    notinsplot = [78, 79, 82, 83, 84, 85, 86, 89, 90, 91, 92, 93]
+    missingkeys = [m for m in missingkeys if m not in notinsplot]
+    for k in missingkeys:
+        print(k)
+        #print(str(k) + " size : " + str(sizes[k]))
+
+
+def SPLOTmodels(rangeCategory):
+    modelFiles = "../data/SPLOT/SPLOT-txt/"
+    constraintsFiles = "../data/SPLOT/SPLOT-txtconstraints/"
+    # rangeCategory = [[10, 12], [12, 15], [15, 20], [20, 25], [25, 30], [30, 40], [40, 51]]
     sizeCategory = [0 for i in rangeCategory]
     total = 0
     for filename in os.listdir(modelFiles):
@@ -304,7 +327,7 @@ def SPLOTresults(rangeCategory, computeMetrics=True, verbose=False):
         print("Min size = " + str(minSize) + "; max size = " + str(maxSize))
     coreFilter = True
 
-    modes = ["1&2&3"]  # ["0", "1", "1&2", "1&2&3"]
+    modes = ["0", "1", "1&2", "1&2&3"]  # ["1&2&3"]
     quty = 0.0
     sizeCIT = 0.0
     sizesCTT = [[] for i in range(len(modes))]
@@ -502,14 +525,15 @@ def SPLOTcreateTable(rangeCategories):
     for r in rangeCategories:
         SPLOTresults(r, computeMetrics=True, verbose=False)
 
-
-# SPLOTmodels()
+categories = [[10, 20], [20, 30], [30, 40], [40, 60], [60, 80], [80, 100]]
+# showAllSPLOTModels()
+#SPLOTmodels()
 #SPLOTresults([50, 70], computeMetrics=True, verbose=False)
-SPLOTcreateTable([[10, 15], [15, 20], [20, 30], [30, 40], [40, 50], [50, 70], [70, 100]])
+SPLOTcreateTable(categories)
 # SPLOTgraph()
 # SPLOTimprovements()
 # getCITcoverage()
 #  ["0", "1", "1&2", "2", "3", "2&3", "1&3", "1&2&3"]
-# graphCoverageEvolution(1000, ["0", "1&2&3"], plot=1)
+# graphCoverageEvolution(1000, ["0"], plot=0)
 # findBestWeights(look_ahead=False)
 # getCITSizeAverage(50)

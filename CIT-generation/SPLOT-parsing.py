@@ -25,7 +25,7 @@ def filterOR(line):
         .replace("memory", "memry").replace("storage", "strage").replace("format", "frmat") \
         .replace("corporation", "crpration").replace("form", "frm").replace("organization", "rganization").replace(
         "source-oriented", "source-riented") \
-        .replace("target-oriented", "target-riented").replace("dedicated support", "dedicated supprt")
+        .replace("target-oriented", "target-riented").replace("dedicated support", "dedicated supprt").replace("sensor", "sensr")
 
     dictio = ["coroutine", "priority", "category", "more", "processor", "core", "history", "perform", "oracle"]
     for word in dictio:
