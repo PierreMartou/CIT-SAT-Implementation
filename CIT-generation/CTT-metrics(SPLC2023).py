@@ -525,7 +525,7 @@ def SPLOTcreateTable(rangeCategories):
     for r in rangeCategories:
         SPLOTresults(r, computeMetrics=True, verbose=False)
 
-categories = [[10, 20], [20, 30], [30, 40], [40, 60], [60, 80], [80, 100]]
+categories = [[10, 20], [20, 30], [30, 40], [40, 50], [50, 75], [75, 100]]
 # showAllSPLOTModels()
 #SPLOTmodels()
 #SPLOTresults([50, 70], computeMetrics=True, verbose=False)
