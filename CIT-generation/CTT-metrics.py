@@ -41,7 +41,7 @@ def smoothLinearApprox(x, y):
     return x_smooth, y_smooth
 
 
-def graphCoverageEvolution(iterations, mode=None, plot=None):
+def RISEvaluation(iterations, mode=None, recompute=False, latex=False, plot=None):
     models = "../data/RIS-FOP/"
     s = SystemData(featuresFile=models + 'features.txt')
     font = {'size': 16}
@@ -52,9 +52,13 @@ def graphCoverageEvolution(iterations, mode=None, plot=None):
     lines = ["-"] #, "--"]
     lines2 = ["-."] #, ":"]
     linesCoverage = [lines, lines2]
+    costAverages = []
+    costVariances = []
+    sizeAverages = []
+    sizeVariances = []
 
     if mode is None:
-        print("PLEASE INDICATE WHICH MODES IN GRAPHCOVERAGEEVOLUTION.")
+        print("PLEASE INDICATE WHICH MODES IN RISEvaluation.")
         return
     modes = mode
 
@@ -68,32 +72,41 @@ def graphCoverageEvolution(iterations, mode=None, plot=None):
         i_filter, w_la, w_c = recognizeMode(mode)
         storage = models + "TestSuitesCTT/testSuite" + str(mode) + "-"
 
-        recompute = False  # True #if "0" == mode else False
         for i in range(iterations):
             testSuite = computeCTTSuite(storage, i, s, interaction_filter=i_filter, weight_lookahead=w_la,
                                         weight_comparative=w_c, recompute=recompute)
             allSize.append(testSuite.getLength())
             allCosts.append(testSuite.getCost())
-            interactionEvolution, transitionEvolution, switchesEvolution = testSuite.interactionTransitionCoverageEvolution()
-            allSwitchesEvolution.append(switchesEvolution)
-            allInteractionEvolution.append(interactionEvolution)
-            allTransitionEvolution.append(transitionEvolution)
+            if plot is not None:
+                interactionEvolution, transitionEvolution, switchesEvolution = testSuite.interactionTransitionCoverageEvolution()
+                allSwitchesEvolution.append(switchesEvolution)
+                allInteractionEvolution.append(interactionEvolution)
+                allTransitionEvolution.append(transitionEvolution)
 
-        costAverage = round(sum(allCosts) / len(allCosts), 1)
-        costVariance = round(float(np.std(allCosts)), 1)
+        costAverages.append(round(sum(allCosts) / len(allCosts), 1))
+        costVariances.append(round(float(np.std(allCosts)), 1))
 
-        sizeAverage = round(sum(allSize) / len(allSize), 1)
-        sizeVariance = round(float(np.std(allSize)), 1)
+        sizeAverages.append(round(sum(allSize) / len(allSize), 1))
+        sizeVariances.append(round(float(np.std(allSize)), 1))
 
+    delimiter = ""
+    ender = ""
+    if latex:
+        delimiter = " & "
+        ender = " \\\\\\hline"
+    else:
+        print("Improvements \t Size \t Cost")
+        delimiter = "\t"
+
+    for i in range(len(modes)):
         if plot is None:
-            print(str(mode) + " & " + str(sizeAverage) + " (+-" + str(sizeVariance) + ") & " + str(costAverage)
-                  + " (+-" + str(costVariance) + ") \\\\\\hline")
+            print("Improvement " + str(modes[i]) + delimiter + str(sizeAverages[i]) + " (+-" + str(sizeVariances[i]) + ")" + delimiter + str(costAverages[i]) + " (+-" + str(costVariances[i]) + ")" + ender)
 
         if plot is not None:
-            print("Mode " + str(mode) + " - Cost average (std deviation): " + str(costAverage) + " (+-" + str(
-                costVariance) + ")")
-            print("Mode " + str(mode) + " - Size average (std deviation): " + str(sizeAverage) + " (+-" + str(
-                sizeVariance) + ")")
+            print("Mode " + str(modes[i]) + " - Cost average (std deviation): " + str(costAverages[i]) + " (+-" + str(
+                costVariances[i]) + ")")
+            print("Mode " + str(modes[i]) + " - Size average (std deviation): " + str(sizeAverages[i]) + " (+-" + str(
+                sizeVariances[i]) + ")")
 
             interactionEvolutionAverage = computeEvolutionAverage(allInteractionEvolution, iterations)
             transitionEvolutionAverage = computeEvolutionAverage(allTransitionEvolution, iterations)
@@ -144,6 +157,15 @@ def graphCoverageEvolution(iterations, mode=None, plot=None):
                 plt.ylabel('Number of switches')
                 # test = [1, 3, 5, 7, 9, 11, 13, 15]
                 # plt.xticks(test, test)
+    if not latex:
+        print("We drew our conclusions from the decrease in average size, cost and standard deviation from No Improvement to Improvement 1 & 2 & 3.")
+        sizereduc = (sizeAverages[0]-sizeAverages[-1]) / sizeAverages[0]
+        costreduc = (costAverages[0]-costAverages[-1]) / costAverages[0]
+        stdreduc = ((costVariances[0]-costVariances[-1]) / costVariances[0] + (sizeVariances[0]-sizeVariances[-1]) / sizeVariances[0]) / 2
+        print("In this table, size was reduced by " + str(sizereduc) + "%.")
+        print("Cost was reduced by " + str(costreduc) + "%.")
+        print("Standard deviation was on average reduced by " + str(stdreduc) + "%.")
+
     if plot == 0:
         plt.savefig("../results/coverageEvolution.pdf",bbox_inches='tight')
     elif plot == 1:
@@ -173,26 +195,36 @@ def getCITSizeAverage(iterations):
     testSuite.printLatexTransitionForm(mode="unordered")
 """
 
-def showAllSPLOTModels():
+def getNumberOfSPLOTModels(category=None):
+    miniSize = -1
+    maxiSize = 101
+    if category is not None:
+        miniSize = category[0]
+        maxiSize = category[1]
+
     modelFiles = "../data/SPLOT/SPLOT-txt/"
     constraintsFiles = "../data/SPLOT/SPLOT-txtconstraints/"
-    sizes = {}
+    #sizes = {}
+    total = 0
     for filename in os.listdir(modelFiles):
         txt = os.path.join(modelFiles, filename)
         txtConstraints = os.path.join(constraintsFiles, filename)
         s = SystemData(featuresFile=txt, extraConstraints=txtConstraints)
         size = len(s.getFeatures())
-        if size not in sizes:
-            sizes[size] = 1
-        else:
-            sizes[size] += 1
-    keys = list(sizes.keys())
-    keys.sort()
-    missingkeys = [i for i in range(10, 100) if i not in keys]
-    notinsplot = [78, 79, 82, 83, 84, 85, 86, 89, 90, 91, 92, 93]
-    missingkeys = [m for m in missingkeys if m not in notinsplot]
-    for k in missingkeys:
-        print(k)
+        if size >= miniSize and size < maxiSize and transitionExist(s):
+            total += 1
+    return total
+            #if size not in sizes:
+            #    sizes[size] = 1
+            #else:
+            #    sizes[size] += 1
+    #keys = list(sizes.keys())
+    #keys.sort()
+    #missingkeys = [i for i in range(10, 100) if i not in keys]
+    #notinsplot = [78, 79, 82, 83, 84, 85, 86, 89, 90, 91, 92, 93]
+    #missingkeys = [m for m in missingkeys if m not in notinsplot]
+    #for k in missingkeys:
+    #    print(k)
         #print(str(k) + " size : " + str(sizes[k]))
 
 
@@ -312,35 +344,37 @@ def SPLOTgraph():
     plt.show()
 
 
-def SPLOTresults(rangeCategory, computeMetrics=True, verbose=False):
+def SPLOTresults(rangeCategory, recompute=False, computeMetrics=True, latex=False, verbose=False):
     modelFiles = "../data/SPLOT/SPLOT-txt/"
     constraintsFiles = "../data/SPLOT/SPLOT-txtconstraints/"
     storageCIT = "../data/SPLOT/SPLOT-TestSuitesCIT/"
     storageCTT = "../data/SPLOT/SPLOT-TestSuitesCTT/"
     threading = True
     max_iterations = 5
+
+    total = getNumberOfSPLOTModels(rangeCategory)
     # rangeCategory = [[10, 12], [12, 15], [15, 20], [20, 25], [25, 30], [30, 40], [40, 51], [95, 100]]
     # rangeCategory = [[95, 105]]
     minSize = rangeCategory[0]
     maxSize = rangeCategory[1]
     if verbose:
         print("Min size = " + str(minSize) + "; max size = " + str(maxSize))
-    coreFilter = True
+        print("Total number of models : " + str(total))
 
-    modes = ["0", "1", "1&2", "1&2&3"]  # ["1&2&3"]
+    currentModel = 0
+    modes = ["0", "1", "1&2", "1&2&3"]
     quty = 0.0
     sizeCIT = 0.0
     sizesCTT = [[] for i in range(len(modes))]
     costCIT = [0, 0]
     costsCTT = [[] for i in range(len(modes))]
     transitionCoverage = [0, 0]
-
-    recompute = False  # True if "3" in mode else False
     candidates = 20
-
+    if recompute:
+        print("Computing model " + "0" + "/" + str(total) + " (category: " + str(rangeCategory) + ")", flush=True, end='')
     for filename in os.listdir(modelFiles):
-        # if quty == 9:
-        #    break
+        if quty >+3:
+            continue
         txt = os.path.join(modelFiles, filename)
         txtConstraints = os.path.join(constraintsFiles, filename)
         s = SystemData(featuresFile=txt, extraConstraints=txtConstraints)
@@ -350,6 +384,9 @@ def SPLOTresults(rangeCategory, computeMetrics=True, verbose=False):
         threadsCTT = [[] for mode in modes]
         with concurrent.futures.ThreadPoolExecutor() as executor:
             if minSize <= len(s.getFeatures()) < maxSize and transitionExist(s):
+                currentModel += 1
+                if recompute:
+                    print("\rComputing model " + str(currentModel) + "/" + str(total) + " (category: " + str(rangeCategory) + ")", flush=True, end='')
                 quty += 1
                 if verbose:
                     print(str(quty) + " quty : " + str(filename))
@@ -358,8 +395,6 @@ def SPLOTresults(rangeCategory, computeMetrics=True, verbose=False):
                 elif computeMetrics:
                     allTr = allTransitions(s)
                 for iteration in range(max_iterations):
-                    # print(str(iteration) + " iteration")
-                    # [:-4] removes .txt
                     tempStorageCIT = storageCIT + filename[:-4] + "-"
                     # SATSolver.resetCount()
                     if threading:
@@ -428,7 +463,6 @@ def SPLOTresults(rangeCategory, computeMetrics=True, verbose=False):
     normalise = quty * max_iterations
     sizeCIT = round(sizeCIT / normalise, 1)
     sizesstdCTT = [np.std(s) for s in sizesCTT]
-    # print(sizesCTT)
     sizesCTT = [round(sum(s) / normalise, 1) for s in sizesCTT]
     costCIT = [round(c / normalise, 1) for c in costCIT]
     costsstdCTT = [np.std(c) for c in costsCTT]
@@ -437,10 +471,31 @@ def SPLOTresults(rangeCategory, computeMetrics=True, verbose=False):
     quty = int(quty)
     toPrint = ""
     ranges = str(minSize) + "-" + str(maxSize - 1)
-    for arg in [ranges, quty, sizeCIT] + sizesCTT + costCIT + costsCTT + transitionCoverage:
-        toPrint += str(arg) + " & "
+    if latex:
+        delimiter = " & "
+        for arg in [ranges, quty, sizeCIT] + sizesCTT + costCIT + costsCTT + transitionCoverage:
+            toPrint += str(arg) + delimiter
+        print(toPrint[:-2] + " \\\\\\hline")
+    else:
+        delimiter = "\t\t"
+        for arg in [ranges, quty]:
+            toPrint += str(arg) + delimiter
+        delimiter = "\t"
+        for arg in [sizeCIT] + sizesCTT:
+            toPrint += str(arg) + delimiter
+        toPrint += delimiter
+        delimiter = "\t\t"
+        for arg in costCIT:
+            toPrint += str(arg) + delimiter
+        delimiter = "\t"
+        for arg in costsCTT:
+            toPrint += str(arg) + delimiter
+        toPrint += delimiter
+        delimiter = "\t\t"
+        for arg in transitionCoverage:
+            toPrint += str(arg) + delimiter
+        print("\r" + toPrint, flush=True)
 
-    print(toPrint[:-2] + " \\\\\\hline")
     if verbose:
         print(sizesstdCTT)
         print(costsstdCTT)
@@ -521,19 +576,21 @@ def findBestWeights(look_ahead=True):
     plt.show()
 
 
-def SPLOTcreateTable(rangeCategories):
+def SPLOTcreateTable(rangeCategories, recompute=False, verbose=False):
+    print("#feature\tQty\t\tSize\t\t\t\t\t\t\t\t\tCost\t\t\t\t\t\t\t\t\t\t\t\t\t\tT. cov.")
+    print("\t\t\t\t\tCIT\tCTT0\tCTT1\tCTT1&2\tCTT1&2&3\tCIT Diss\tCIT Cost\tCTT0\tCTT1\tCTT1&2\tCTT1&2&3\tCIT Diss\tCIT Cost")
     for r in rangeCategories:
-        SPLOTresults(r, computeMetrics=True, verbose=False)
+        SPLOTresults(r, recompute=recompute, computeMetrics=True, verbose=verbose, latex=False)
 
-categories = [[10, 20], [20, 30], [30, 40], [40, 50], [50, 75], [75, 100]]
+#categories = [[70, 100]]#[[10, 20], [20, 30], [30, 40], [40, 50], [50, 75], [75, 100]]
 # showAllSPLOTModels()
 #SPLOTmodels()
-#SPLOTresults([50, 70], computeMetrics=True, verbose=False)
-SPLOTcreateTable(categories)
+# SPLOTresults(, recompute=True, computeMetrics=True, verbose=False)
+SPLOTcreateTable([[10, 11], [11, 12]], recompute=True)
 # SPLOTgraph()
 # SPLOTimprovements()
 # getCITcoverage()
 #  ["0", "1", "1&2", "2", "3", "2&3", "1&3", "1&2&3"]
-# graphCoverageEvolution(1000, ["0"], plot=0)
+# RISEvaluation(1000, ["0", "1", "2", "3", "1&2", "2&3", "1&3", "1&2&3"], recompute=False, plot=None)
 # findBestWeights(look_ahead=False)
 # getCITSizeAverage(50)

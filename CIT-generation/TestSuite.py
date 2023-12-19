@@ -593,7 +593,7 @@ def testingScores():
     resultsActivationCoverage = [0.0, 0.0, 0.0]
     nIterations = 5
     for i in range(nIterations):
-        filepath = "../data/testSuitesSPLC/testSuite"+str(i)+".pkl"
+        filepath = "../data/testSuites/testSuite"+str(i)+".pkl"
         if os.path.exists(filepath):
             testSuite = readSuite(s, filepath)
         else:
