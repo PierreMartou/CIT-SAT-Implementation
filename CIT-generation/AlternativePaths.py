@@ -15,6 +15,9 @@ class AlternativePaths:
         for i in range(len(testSuite)-1):
             newPaths, coveredTransitions = self.createAlternativePaths(testSuite[i], testSuite[i+1], coveredTransitions)
             allPaths.append(newPaths)
+            if len(coveredTransitions) == len(self.decomposableTransitions):
+                print("Transition complete before end of test suite is abnormal. Error.")
+                return None
         return allPaths, coveredTransitions
 
     def createAlternativePaths(self, config1, config2, coveredTransitions):
@@ -26,7 +29,8 @@ class AlternativePaths:
                 t = orderedSet((changes[i], changes[j]), self.s.getValuesForFactors())
                 if t not in coveredTransitions:
                     possibleCoverage.append(t)
-
+        if len(possibleCoverage) == 0:
+            return [], coveredTransitions
         possiblePathCoverage = [possibleCoverage]
         uncoverableTransitions = []
         paths = []

@@ -2,7 +2,7 @@ from SATSolver import SATSolver
 import random
 
 class BuildingCTT:
-    def __init__(self, systemData, verbose=False, numCandidates=30, interaction_filter=True, weight_lookahead=0.5, weight_comparative=0.5):
+    def __init__(self, systemData, verbose=False, numCandidates=30, interaction_filter=True, weight_lookahead=0.5, weight_comparative=0.3, weight_cost=None):
         self.verbose = verbose
         self.numCandidates = numCandidates
         self.systemData = systemData
@@ -15,6 +15,7 @@ class BuildingCTT:
         self.weight_lookahead = weight_lookahead
         self.weight_comparative = weight_comparative
         self.interaction_filter = interaction_filter
+        self.weight_cost = weight_cost
 
         self.coveringArray = []
         self.numTests = 0
@@ -59,7 +60,9 @@ class BuildingCTT:
     def selectSpecificBestValue(self, f, currentTestCase, prevTestCase):
         candidates = []
         bestScore = -1
-        for v in self.valuesForFactors[f]:
+        scores = []
+        values = self.valuesForFactors[f]
+        for v in values:
             pair = (f, v)
             score = 0
 
@@ -77,35 +80,49 @@ class BuildingCTT:
             for transition in self.unCovTransitions:
                 if transition in possibleTransitions:
                     score += 1
-                else:
+            limitForLookahead = None
+            if score > 0:
+                limitForLookahead = score + 5
+            currentLookaheadscore = 0
+            for transition in self.unCovTransitions:
+                if transition not in possibleTransitions:
                     # LOOKAHEAD SCORES IF WE PREPARE FOR A FUTURE TRANSITION BY USING THIS VALUE.
                     condition = transition[0] == (f, -v)
-                    if transition[1][0] in currentTestCase:
+                    if condition and transition[1][0] in currentTestCase:
                         condition = condition and currentTestCase[transition[1][0]] == -1 * transition[1][1]
 
                     condition2 = transition[1] == (f, -v)
-                    if transition[0][0] in currentTestCase:
+                    if condition2 and transition[0][0] in currentTestCase:
                         condition2 = condition2 and currentTestCase[transition[0][0]] == -1 * transition[0][1]
 
-                    if condition or condition2:
-                        score += self.weight_lookahead
-
+                    if (condition or condition2):
+                        if limitForLookahead is None or currentLookaheadscore < limitForLookahead:
+                            currentLookaheadscore += self.weight_lookahead
+                            score += self.weight_lookahead
+            scores.append(score)
+        for score in scores:
             if score > bestScore:
                 bestScore = score
-                candidates = [v]
+                candidates = [values[scores.index(score)]]
             elif score == bestScore:
-                candidates.append(v)
+                candidates.append(values[scores.index(score)])
         return random.choice(candidates)
 
     def selectBestTestCase(self, testCasePool, prevTestCase):
         candidates = []
         bestScore = -1
+        bestCost = None
         scores = []
         lookaheads = []
+        costs = []
         for testCase in testCasePool:
             possibleInteractions = self.computeAllPairs(testCase)
             possibleTransitions = []
+            cost = None
             if prevTestCase is not None:
+                cost = sum([1 for v in testCase.values() if v not in prevTestCase.values()])
+                if cost == 0:
+                    print("wtf")
                 possibleTransitions = [pair for pair in possibleInteractions if prevTestCase[pair[0][0]] != pair[0][1] and prevTestCase[pair[1][0]] != pair[1][1]]
 
             # ADD HEURISTICS HERE.
@@ -125,8 +142,13 @@ class BuildingCTT:
 
             scores.append(score)
             lookaheads.append(lookaheadscore)
-            if score+lookaheadscore > bestScore:
+            costs.append(cost)
+            cost_influence = 0
+            if self.weight_cost is not None and bestCost is not None and cost is not None and cost != 0 and bestCost != 0:
+                cost_influence = (cost - bestCost)/bestCost*self.weight_cost
+            if (score+lookaheadscore)*(1-cost_influence) > bestScore:
                 bestScore = score+lookaheadscore
+                bestCost = cost
                 # print("Best score is " + str(bestScore) + ",  look ahead : " + str(lookaheadscore))
                 candidates = [testCase]
             elif score+lookaheadscore == bestScore:

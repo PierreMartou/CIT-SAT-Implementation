@@ -75,6 +75,23 @@ class TestSuite:
             self.suiteMinimized = self.minimizeTestEffort(self.suiteUnordered, self.systemData.getFeatures())
         self.suiteMaximized = self.maximizeDissimilarity(self.suiteUnordered, self.systemData.getFeatures())
         self.suiteRandomOrder = self.randomOrder()
+
+    def createShortenedPath(self):
+        newPath = [self.suiteUnordered[0]]
+        prevP = self.suiteUnordered[0]
+        for p in self.suiteUnordered:
+            equivalent = True
+            for s in p:
+                if p[s] != prevP[s]:
+                    equivalent = False
+            if not equivalent:
+                newPath.append(p)
+        return newPath
+
+    def getShortenedLengthAndCost(self):
+        self.suiteShortened = self.createShortenedPath()
+        return len(self.suiteShortened), self.getCost("shortened")
+
     def compareFeatureSwitches(self):
         minimizedFeatureSwitches = numberOfChangements(self.suiteMinimized, self.features)
         maxFeatureSwitches = numberOfChangements(self.suiteMaximized, self.features)
@@ -456,6 +473,8 @@ class TestSuite:
             return self.suiteUnordered
         elif mode == "random":
             return self.suiteRandomOrder
+        elif mode == "shortened":
+            return self.suiteShortened
         print("MODE NOT RECOGNIZED: "+str(mode))
         return None
 

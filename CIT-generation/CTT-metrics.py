@@ -285,13 +285,12 @@ def SPLOTimprovements():
     print("Sizes for modes 0, 12, 123 : " + str(sizes))
     print("Stds for modes 0, 12, 123 : " + str(stds))
 
-
 def SPLOTgraph():
     modelFiles = "../data/SPLOT/SPLOT-txt/"
     constraintsFiles = "../data/SPLOT/SPLOT-txtconstraints/"
     storageCIT = "../data/SPLOT/SPLOT-TestSuitesCIT/"
     storageCTT = "../data/SPLOT/SPLOT-TestSuitesCTT/"
-    max_iterations = 10
+    max_iterations = 2
     sizesCIT = {}
     sizesCTT = {}
     font = {'size': 16}
@@ -302,9 +301,8 @@ def SPLOTgraph():
         txt = os.path.join(modelFiles, filename)
         txtConstraints = os.path.join(constraintsFiles, filename)
         s = SystemData(featuresFile=txt, extraConstraints=txtConstraints)
-        allTr = allTransitions(s)
-        if len(allTr) > 0:
-            size = len(s.getFeatures())
+        size = len(s.getFeatures())
+        if size >9 and size < 60 and (size not in sizesCIT or len(sizesCIT[size]) < 10) and transitionExist(s):
             if size not in sizesCIT:
                 sizesCIT[size] = []
                 sizesCTT[size] = []
@@ -329,19 +327,116 @@ def SPLOTgraph():
     for size in x:
         yCIT.append(sum(sizesCIT[size]) / len(sizesCIT[size]))
         yCTT.append(sum(sizesCTT[size]) / len(sizesCTT[size]))
-
+    print(yCIT)
+    print(yCTT)
     print("Correlation coefficient : " + str(scistats.pearsonr(yCIT, yCTT)))
     print("Factor more : " + str(sum(yCTT) / sum(yCIT)))
 
     x1_smooth, y1_smooth = smoothLinearApprox(x, yCIT)
     x2_smooth, y2_smooth = smoothLinearApprox(x, yCTT)
-    plt.plot(x1_smooth, y1_smooth, '-', label="CIT")
-    plt.plot(x2_smooth, y2_smooth, '--', label="CTT")
+    x3_smooth, y3_smooth = smoothLinearApprox(x, [yCTT[i]/yCIT[i] for i in range(len(yCIT))])
+    #plt.plot(x1_smooth, y1_smooth, '-', label="CIT")
+    #plt.plot(x2_smooth, y2_smooth, '--', label="CTT")
+    plt.plot(x3_smooth, y3_smooth, '-', label="Coefficient")
     plt.xlabel('Number of features')
     plt.ylabel('Size')
     plt.legend()
     plt.savefig("../results/sizeCTTCIT.pdf")
     plt.show()
+
+def SPLOTspecificModel(filename, verbose=False):
+    modelFiles =  "../data/SPLOT/SPLOT-txt/"
+    constraintsFiles = "../data/SPLOT/SPLOT-txtconstraints/"
+    storageCIT = "../data/SPLOT/SPLOT-TestSuitesCIT/"
+    storageCTT = "../data/SPLOT/SPLOT-TestSuitesCTT/"
+    threading = True
+    modes = ["1&2&3"]  # ["0", "1", "1&2", "1&2&3"]
+    candidates = 20
+    txt = os.path.join(modelFiles, filename)
+    txtConstraints = os.path.join(constraintsFiles, filename)
+    s = SystemData(featuresFile=txt, extraConstraints=txtConstraints)
+    allCITsuites = []
+    allCTTsuites = [[] for mode in modes]
+    threadsCIT = []
+    threadsCTT = [[] for mode in modes]
+    quty = 0
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        quty += 1
+        if verbose:
+            print(str(quty) + " quty : " + str(filename))
+        if computeMetrics and threading:
+            futureAllTr = executor.submit(allTransitions, s)
+        elif computeMetrics:
+            allTr = allTransitions(s)
+        for iteration in range(max_iterations):
+            # print(str(iteration) + " iteration")
+            # [:-4] removes .txt
+            tempStorageCIT = storageCIT + filename[:-4] + "-"
+            # SATSolver.resetCount()
+            if threading:
+                recompute=False
+                sT = SystemData(featuresFile=txt, extraConstraints=txtConstraints)
+                future = executor.submit(computeCITSuite, tempStorageCIT, iteration, sT, candidates,
+                                         recompute=recompute)
+                threadsCIT.append(future)
+            else:
+                allCITsuites.append(computeCITSuite(tempStorageCIT, iteration, s, candidates, recompute=recompute))
+            # print("Number of SAT calls for CIT : " + str(SATSolver.getCount()))
+
+            tempThreadsList = []
+            tempSuiteList = []
+            for mode in modes:
+                if verbose:
+                    print("Computing mode " + str(mode) + "...")
+                tempStorageCTT = storageCTT + filename[:-4] + "-" + mode + "-"
+                i_filter, w_la, w_c = recognizeMode(mode)
+
+                # SATSolver.resetCount()
+                if threading:
+                    recompute = True
+                    sT2 = SystemData(featuresFile=txt, extraConstraints=txtConstraints)
+                    future = executor.submit(computeCTTSuite, tempStorageCTT, iteration, sT2, candidates=candidates,
+                                        interaction_filter=i_filter, weight_lookahead=w_la,
+                                        weight_comparative=w_c, recompute=recompute)
+                    tempThreadsList.append(future)
+                else:
+                    tempSuiteList.append(computeCTTSuite(tempStorageCTT, iteration, s, candidates=candidates,
+                                            interaction_filter=i_filter, weight_lookahead=w_la,
+                                            weight_comparative=w_c, recompute=recompute))
+            if threading:
+                for m in range(len(modes)):
+                    threadsCTT[m].append(tempThreadsList[m])
+            else:
+                for m in range(len(modes)):
+                    allCTTsuites[m].append(tempSuiteList[m])
+                # print("Number of SAT calls for CTT, mode "+str(mode) + " : " + str(SATSolver.getCount()))
+
+        if threading:
+            for t in threadsCIT:
+                allCITsuites.append(t.result())
+            for m in range(len(modes)):
+                suiteMode = []
+                for t in threadsCTT[m]:
+                    suiteMode.append(t.result())
+                allCTTsuites[m] = suiteMode
+
+        for testSuite in allCITsuites:
+            sizeCIT += testSuite.getLength()
+            costCIT[0] += testSuite.getCost("dissimilarity")
+            costCIT[1] += testSuite.getCost("minimized")
+            if computeMetrics:
+                transitionsDiss = testSuite.transitionPairCoverage("dissimilarity")
+                transitionsMin = testSuite.transitionPairCoverage("minimized")
+                if threading:
+                    allTr = futureAllTr.result()
+                transitionCoverage[0] += float(len(transitionsDiss)) / len(allTr) * 100.0
+                transitionCoverage[1] += float(len(transitionsMin)) / len(allTr) * 100.0
+
+        for mode in modes:
+            suiteMode = allCTTsuites[modes.index(mode)]
+            for testSuite in suiteMode:
+                sizesCTT[modes.index(mode)].append(testSuite.getLength())
+
 
 
 def SPLOTresults(rangeCategory, recompute=False, computeMetrics=True, latex=False, verbose=False):
