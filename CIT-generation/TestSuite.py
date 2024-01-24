@@ -20,7 +20,7 @@ def computeCITSuite(fpath, iteration, s, candidates=30, recompute=False):
     return testSuite
 
 
-def computeCTTSuite(fpath, iteration, s, candidates=30, interaction_filter=False, weight_lookahead=0, weight_comparative=0, recompute=False):
+def computeCTTSuite(fpath, iteration, s, candidates=30, interaction_filter=True, weight_lookahead=0.5, weight_comparative=0.3, recompute=False):
     filepath = fpath + str(iteration)+".pkl"
     if os.path.exists(filepath) and not recompute:
         testSuite = readSuite(filepath)
@@ -46,6 +46,7 @@ class TestSuite:
         if len(suite) == 0:
             print("WARNING: Creating a Test Suite with no elements.")
         self.suiteUnordered = suite
+        self.suiteMinimized = None
         self.computeRearrangements = computeRearrangements
         self.systemData = systemData
         self.contexts = systemData.getContexts()
@@ -65,13 +66,15 @@ class TestSuite:
             self.variabilities.remove(f)
 
         if computeRearrangements:
-            if len(systemData.getContexts()) != 0:
-                self.suiteMinimized = self.minimizeTestEffort(suite, systemData.getContexts())
-            else:
-                self.suiteMinimized = self.minimizeTestEffort(suite, systemData.getFeatures())
-            self.suiteMaximized = self.maximizeDissimilarity(suite, systemData.getFeatures())
-            self.suiteRandomOrder = self.randomOrder()
+            self.computeAllRearrangements()
 
+    def computeAllRearrangements(self):
+        if len(self.systemData.getContexts()) != 0:
+            self.suiteMinimized = self.minimizeTestEffort(self.suiteUnordered, self.systemData.getContexts())
+        else:
+            self.suiteMinimized = self.minimizeTestEffort(self.suiteUnordered, self.systemData.getFeatures())
+        self.suiteMaximized = self.maximizeDissimilarity(self.suiteUnordered, self.systemData.getFeatures())
+        self.suiteRandomOrder = self.randomOrder()
     def compareFeatureSwitches(self):
         minimizedFeatureSwitches = numberOfChangements(self.suiteMinimized, self.features)
         maxFeatureSwitches = numberOfChangements(self.suiteMaximized, self.features)
@@ -428,6 +431,8 @@ class TestSuite:
             reusabilitydegrees[feature] = float(degree) / numberOfTests
 
     def getMinTestSuite(self):
+        if self.suiteMinimized is None:
+            self.computeAllRearrangements()
         return self.suiteMinimized
 
     def getMaxTestSuite(self):
