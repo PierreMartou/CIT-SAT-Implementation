@@ -38,16 +38,20 @@ class OracleSolver:
         self.solver.push()
 
     def featureID(self, f, state):
-        return f+"-"+str(state)
+        return f+"#"+str(state)
 
     def addState(self, state):
         features = {}
+        dummyCount = 0
         for feature in self.s.getNodes():
-            if str(state) in feature:
-                print("warning, id in feature when creating SMT solver")
-            if "-" in feature:
-                print("warning, symbol - is not allowed in features")
-            features[feature] = Bool(self.featureID(feature, state))
+            if "#" in feature:
+                print("warning, symbol # is not allowed in features")
+            if feature != "dummy":
+                features[feature] = Bool(self.featureID(feature, state))
+            else:
+                dummyCount += 1
+        if dummyCount > 1:
+            print("multiple dummies")
         for constraint in self.s.getConstraints():
             helper = switcher.get(constraint[0].lower(), lambda: print("Invalid constraint."))
             newClauses = helper(self.s.toIndex(constraint[1]), self.s.toIndex(constraint[2]))
@@ -74,17 +78,32 @@ class OracleSolver:
     def minPathObjective(self):
         equalStateVariables = []
         for state in range(len(self.featuresInStates)):
-            equalStateVariable = Int("EqualStateVariable-"+str(state))
+            equalStateVariable = Int("EqualStateVariable#"+str(state))
             equalStateVariables.append(equalStateVariable)
-            self.solver.add(If(And([self.finalFeatures[f] == self.featuresInStates[state][f] for f in self.finalFeatures]), equalStateVariable == 1, equalStateVariable == 0))
+            self.solver.add(If(And([self.finalFeatures[f] == self.featuresInStates[state][f] for f in self.finalFeatures]), equalStateVariable == 0, equalStateVariable == 1))
 
         numberOfSteps = Int("NumberOfSteps")
         self.solver.add(numberOfSteps == sum(equalStateVariables))
         return numberOfSteps
 
+    def minCostObjective(self):
+        equalValueVariables = []
+        states = ['start'] + [i for i in range(len(self.featuresInStates))] + ['final']
+        for i in range(len(states)-1):
+            currentState = self.allFeatures[states[i]]
+            futureState = self.allFeatures[states[i+1]]
+            for f in currentState:
+                equalValueVariable = Int("EqualValueVariable#"+str(f)+"#"+str(states[i]))
+                equalValueVariables.append(equalValueVariable)
+                self.solver.add(If(currentState[f] == futureState[f], equalValueVariable == 0, equalValueVariable == 1))
+
+        cost = Int("InverseCost")
+        self.solver.add(cost == sum(equalValueVariables))
+        return cost
+
     def createObjectives(self):
         obj1 = self.minPathObjective()
-        # obj2
+        #obj2 = self.minCostObjective()
         # obj3 = weighted sum of obj1 and obj2
         # return obj3
         return obj1
@@ -97,13 +116,15 @@ class OracleSolver:
             #print(nodes[abs(values[f])])
             #print(featureStates[f], " of value ", values[f])
             if values[f] > 0:
-                self.solver.assert_exprs(featureStates[f])
+                #self.solver.assert_exprs(featureStates[f])
+                self.solver.add(featureStates[f])
             else:
-                self.solver.assert_exprs(Not(featureStates[f]))
+                self.solver.add(Not(featureStates[f]))
+                #self.solver.assert_exprs(Not(featureStates[f]))
 
     def createPath(self, initState, finalState, forbiddenTransitions, satisOnly=False):
         self.solver.pop()
-
+        self.solver.push()
         # add initial state
         self.setState(self.startFeatures, initState)
 
@@ -113,18 +134,19 @@ class OracleSolver:
         #add contraints on transitions
         self.forbidAllTransitions(forbiddenTransitions)
 
-        self.solver.maximize(self.objective)
+        self.solver.minimize(self.objective)
         satModel = self.solver.check()
+
+        if satisOnly:
+            return satModel
+
         if satModel == unsat:
-            # print("The model is unsat.")
             return None
-        if satModel == sat and satisOnly:
-            return sat
 
         values = self.solver.model()
         states = [{} for i in range(len(self.featuresInStates))]
         for solverFeature in values:
-            spl = str(solverFeature).split("-")
+            spl = str(solverFeature).split("#")
             #print(spl)
             if len(spl) == 2:
                 feature, state = spl
@@ -144,11 +166,10 @@ class OracleSolver:
                 self.forbidTransition(transition, sequenceOfStates[i], sequenceOfStates[i+1])
 
     def forbidTransition(self, transition, initState, nextState):
-        nodes = self.s.getNodes()
         clause = []
         for f in transition:
-            featureName = nodes[f]
-            if f > 0:
+            featureName = f[0]
+            if f[1] > 0:
                 clause.append(initState[featureName])
                 clause.append(Not(nextState[featureName]))
             else:
@@ -160,23 +181,21 @@ class OracleSolver:
         decomposables = []
         nonDecomposables = []
         for t in allTransitions:
-            indexedT = [self.s.toIndex(f[1:]) if f[0:1] == '+' else -self.s.toIndex(f[1:]) for f in t]
-            if self.decomposableTransition(indexedT):
-                decomposables.append(indexedT)
+            #indexedT = [self.s.toIndex(f[1:]) if f[0:1] == '+' else -self.s.toIndex(f[1:]) for f in t]
+            if self.decomposableTransition(t):
+                decomposables.append(t)
             else:
-                nonDecomposables.append(indexedT)
+                nonDecomposables.append(t)
         return decomposables, nonDecomposables
 
     def decomposableTransition(self, transition):
         initState = {}
         finalState = {}
-        nodes = self.s.getNodes()
         for f in transition:
-            featureName = nodes[f]
-            initState[featureName] = -f
-            finalState[featureName] = f
+            initState[f[0]] = -1*f[1]
+            finalState[f[0]] = f[1]
         path = self.createPath(initState, finalState, [transition], satisOnly=True)
-        if path is None:
+        if path == unsat:
             return False
         else:
             return True

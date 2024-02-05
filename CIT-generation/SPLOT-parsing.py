@@ -5,6 +5,7 @@ from SATSolver import SATSolver
 
 def writeTextFiles(filename):
     featureModel, constraints = getContents(filename)
+    filename = filename.replace("SPLOT/", "SPLOT/SPLOT-NEW/")
     txtFilename = filename.replace("xml", "txt").replace("source", "txt")
     txtFile = open(txtFilename, "w")
     for index in range(len(featureModel) - 1):
@@ -111,7 +112,7 @@ def getRelation(featureModel, index):
             elif relationType == ":m":
                 relations.append(parent + "/Mandatory/" + findUniqueID(tempLine))
             elif relationType == ":g":
-                relationType = "Alternative" if line[line.find("[") + 1:line.find("]")] == "1,1" else "Or"
+                relationType = "Alternative" if tempLine[tempLine.find("[") + 1:tempLine.find("]")] == "1,1" else "Or"
                 relation = parent + "/" + relationType + "/"
                 orIndex = tempIndex + 1
                 orLine = featureModel[orIndex]
@@ -164,3 +165,4 @@ if __name__ == '__main__':
         writeTextFiles(f)
         # s = SystemData(featuresFile="../data/SPLOT/SPLOT-txt/TESTFILE.txt", extraConstraints="../data/SPLOT/SPLOT-txtconstraints/TESTFILE.txt")
         # solver = SATSolver(s)
+

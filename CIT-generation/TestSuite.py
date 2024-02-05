@@ -9,7 +9,6 @@ from SystemData import SystemData
 from SATSolver import SATSolver
 from CTT_heuristics import BuildingCTT
 
-
 def computeCITSuite(fpath, iteration, s, candidates=30, recompute=False):
     filepath = fpath + str(iteration)+".pkl"
     if os.path.exists(filepath) and not recompute:
@@ -20,14 +19,18 @@ def computeCITSuite(fpath, iteration, s, candidates=30, recompute=False):
     return testSuite
 
 
-def computeCTTSuite(fpath, iteration, s, candidates=30, interaction_filter=True, weight_lookahead=0.5, weight_comparative=0.3, recompute=False):
+def computeCTTSuite(fpath, iteration, s, candidates=20, interaction_filter=True, weight_lookahead=0.5, weight_comparative=0.3, recompute=False, limit=1000, verbose=False):
+    version = "1.0.1"
     filepath = fpath + str(iteration)+".pkl"
     if os.path.exists(filepath) and not recompute:
         testSuite = readSuite(filepath)
-    else:
-        t = BuildingCTT(s, verbose=False, numCandidates=candidates, interaction_filter=interaction_filter, weight_lookahead=weight_lookahead, weight_comparative=weight_comparative)
-        testSuite = TestSuite(s, t.getCoveringArray())
-        storeSuite(testSuite, filepath)
+        if testSuite.isUpToDate(version):
+            return testSuite
+    t = BuildingCTT(s, verbose=verbose, numCandidates=candidates, interaction_filter=interaction_filter, weight_lookahead=weight_lookahead, weight_comparative=weight_comparative, limit=limit)
+    testSuite = TestSuite(s, t.getCoveringArray(), limit=limit, version=version)
+    #if weight_lookahead>0 and len(testSuite.getUnorderedTestSuite())>99:
+    #    print("lookahead failed")
+    storeSuite(testSuite, filepath)
     return testSuite
 
 
@@ -42,7 +45,9 @@ def storeSuite(suite, filePath):
     f.close()
 
 class TestSuite:
-    def __init__(self, systemData, suite, computeRearrangements=False):
+    def __init__(self, systemData, suite, computeRearrangements=False, limit=1000, version="1.0.0"):
+        self.version = version
+        self.limit = limit
         if len(suite) == 0:
             print("WARNING: Creating a Test Suite with no elements.")
         self.suiteUnordered = suite
@@ -67,6 +72,22 @@ class TestSuite:
 
         if computeRearrangements:
             self.computeAllRearrangements()
+        self.suiteShortened = None
+
+    def isUpToDate(self, version):
+        if hasattr(self, "version"):
+           return self.version == version
+        return False
+    def __eq__(self, other):
+        me = self.getUnorderedTestSuite()
+        for t in range(len(me)):
+            for f in t:
+                if t > len(other) or f not in other[t] or me[t][f] != other[t][f]:
+                    return False
+        return True
+
+    def isOffLimit(self):
+        return self.getLength() > self.limit
 
     def computeAllRearrangements(self):
         if len(self.systemData.getContexts()) != 0:
@@ -78,19 +99,23 @@ class TestSuite:
 
     def createShortenedPath(self):
         newPath = [self.suiteUnordered[0]]
-        prevP = self.suiteUnordered[0]
         for p in self.suiteUnordered:
+            prevP = newPath[-1]
             equivalent = True
             for s in p:
-                if p[s] != prevP[s]:
+                if p[s] < 0 < prevP[s] or p[s] > 0 > prevP[s]:
                     equivalent = False
             if not equivalent:
                 newPath.append(p)
-        return newPath
+        self.suiteShortened = newPath
 
     def getShortenedLengthAndCost(self):
-        self.suiteShortened = self.createShortenedPath()
+        if self.suiteShortened is None:
+            self.createShortenedPath()
         return len(self.suiteShortened), self.getCost("shortened")
+
+    def getShortenedTestSuite(self):
+        return self.suiteShortened.copy()
 
     def compareFeatureSwitches(self):
         minimizedFeatureSwitches = numberOfChangements(self.suiteMinimized, self.features)
@@ -201,8 +226,8 @@ class TestSuite:
             changes = []
             for f in self.variabilities:
                 if prev[f] != test[f]:
-                    sign = "+" if test[f] > 0 else "-"
-                    changes.append(sign + f)
+                    #sign = "+" if test[f] > 0 else "-"
+                    changes.append((f, test[f]))
             for i in range(len(changes)):
                 for j in range(i+1, len(changes)):
                     pair = (changes[i], changes[j])
@@ -474,6 +499,8 @@ class TestSuite:
         elif mode == "random":
             return self.suiteRandomOrder
         elif mode == "shortened":
+            if self.suiteShortened is None:
+                self.createShortenedPath()
             return self.suiteShortened
         print("MODE NOT RECOGNIZED: "+str(mode))
         return None
@@ -487,35 +514,41 @@ class TestSuite:
             prevTest = t
         return cost
 
-    def printLatexTransitionForm(self, mode):
+    def getPrintableLine(self, prevTest, test, useContexts=False):
+        linePlusContext = ""
+        lineMinusContext = ""
+        linePlusFeature = ""
+        lineMinusFeature = ""
+        for f in prevTest:
+            if test[f] < 0 < prevTest[f] or prevTest[f] < 0 < test[f]:
+                # sign = ", -" if test[f] < 0 else ", +"
+                if f in self.features:
+                    if test[f] > 0:
+                        linePlusFeature += ", +" + str(f)
+                    else:
+                        lineMinusFeature += ", -" + str(f)
+                elif useContexts:
+                    if test[f] > 0:
+                        linePlusContext += ", +" + str(f)
+                    else:
+                        lineMinusContext += ", -" + str(f)
+        if len(lineMinusContext) < 2 and useContexts:
+            linePlusContext = linePlusContext[2:]
+        if len(lineMinusFeature) < 2:
+            linePlusFeature = linePlusFeature[2:]
+        if useContexts:
+            return lineMinusContext[2:] + linePlusContext + " & " + lineMinusFeature[2:] + linePlusFeature
+        else:
+            return lineMinusFeature[2:] + linePlusFeature
+
+    def printLatexTransitionForm(self, mode="unordered"):
         suite = self.getSpecificOrderSuite(mode)
         prevTest = {f: -1*abs(suite[0][f]) for f in self.features+self.contexts if f != "Context" and f != "Feature"}
         num = 0
         for test in suite:
             num += 1
-            linePlusContext = ""
-            lineMinusContext = ""
-            linePlusFeature = ""
-            lineMinusFeature = ""
-            for f in prevTest:
-                if test[f] != prevTest[f]:
-                    # sign = ", -" if test[f] < 0 else ", +"
-                    if f in self.features:
-                        if test[f] > 0:
-                            linePlusFeature += ", +"+str(f)
-                        else:
-                            lineMinusFeature += ", -"+str(f)
-                    else:
-                        if test[f] > 0:
-                            linePlusContext += ", +"+str(f)
-                        else:
-                            lineMinusContext += ", -"+str(f)
-            if len(lineMinusContext) < 2:
-                linePlusContext = linePlusContext[2:]
-            if len(lineMinusFeature) < 2:
-                linePlusFeature = linePlusFeature[2:]
-
-            toPrint = str(num) + " & " + lineMinusContext[2:] + linePlusContext + " & " + lineMinusFeature[2:] + linePlusFeature + " \\\\\\hline"
+            toPrint = self.getPrintableLine(prevTest, test, useContexts=True)
+            toPrint = str(num) + " & " + toPrint + " \\\\\\hline"
             toPrint = toPrint.replace("Instructions", "Instr")
             print(toPrint)
             prevTest = test
@@ -595,11 +628,11 @@ def allTransitions(s, filterForFeatures=True):
         if filterForFeatures and (pair[0][0] not in s.getFeatures() or pair[1][0] not in s.getFeatures()):
             continue
         if findReversePair(pair, pairs):
-            firstTransition = "+" if pair[0][1] > 0 else "-"
-            firstTransition += pair[0][0]
-            secondTransition = "+" if pair[1][1] > 0 else "-"
-            secondTransition += pair[1][0]
-            transitions.append((firstTransition, secondTransition))
+            #firstTransition = "+" if pair[0][1] > 0 else "-"
+            #firstTransition += pair[0][0]
+            #secondTransition = "+" if pair[1][1] > 0 else "-"
+            #secondTransition += pair[1][0]
+            transitions.append(pair)
     return transitions
 
 

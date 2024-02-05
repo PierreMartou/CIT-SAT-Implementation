@@ -2,8 +2,11 @@ from SATSolver import SATSolver
 import random
 
 class BuildingCTT:
-    def __init__(self, systemData, verbose=False, numCandidates=30, interaction_filter=True, weight_lookahead=0.5, weight_comparative=0.3, weight_cost=None):
+    def __init__(self, systemData, verbose=False, numCandidates=30, interaction_filter=True, weight_lookahead=0.5, weight_comparative=0.3, limit=1000):
         self.verbose = verbose
+        self.limit = limit
+        self.stopgapmeasure = False
+        self.bestOfBoth = False
         self.numCandidates = numCandidates
         self.systemData = systemData
         self.solver = SATSolver(systemData)
@@ -12,10 +15,11 @@ class BuildingCTT:
         for key in self.core.keys():
             del self.valuesForFactors[key]
 
+        self.prevWasDecidedByLookahead = False
+        self.base_weight_lookahead = weight_lookahead
         self.weight_lookahead = weight_lookahead
         self.weight_comparative = weight_comparative
         self.interaction_filter = interaction_filter
-        self.weight_cost = weight_cost
 
         self.coveringArray = []
         self.numTests = 0
@@ -62,6 +66,8 @@ class BuildingCTT:
         bestScore = -1
         scores = []
         values = self.valuesForFactors[f]
+        lostscore = 0
+
         for v in values:
             pair = (f, v)
             score = 0
@@ -80,25 +86,28 @@ class BuildingCTT:
             for transition in self.unCovTransitions:
                 if transition in possibleTransitions:
                     score += 1
-            limitForLookahead = None
-            if score > 0:
-                limitForLookahead = score + 5
-            currentLookaheadscore = 0
-            for transition in self.unCovTransitions:
-                if transition not in possibleTransitions:
-                    # LOOKAHEAD SCORES IF WE PREPARE FOR A FUTURE TRANSITION BY USING THIS VALUE.
-                    condition = transition[0] == (f, -v)
-                    if condition and transition[1][0] in currentTestCase:
-                        condition = condition and currentTestCase[transition[1][0]] == -1 * transition[1][1]
 
-                    condition2 = transition[1] == (f, -v)
-                    if condition2 and transition[0][0] in currentTestCase:
-                        condition2 = condition2 and currentTestCase[transition[0][0]] == -1 * transition[0][1]
+            if self.weight_lookahead > 0:
+                futureTestCase = [-v]
+                shuffledUncovs = self.unCovTransitions.copy()
+                random.shuffle(shuffledUncovs)
+                for transition in shuffledUncovs:
+                    if transition not in possibleTransitions:
+                        # LOOKAHEAD SCORES IF WE PREPARE FOR A FUTURE TRANSITION BY USING THIS VALUE.
+                        if transition[0] == (f, -v) and transition[1][0] in currentTestCase and currentTestCase[transition[1][0]] == -1 * transition[1][1]:
 
-                    if (condition or condition2):
-                        if limitForLookahead is None or currentLookaheadscore < limitForLookahead:
-                            currentLookaheadscore += self.weight_lookahead
-                            score += self.weight_lookahead
+                            if transition[1][1] in futureTestCase or self.solver.checkSAT(futureTestCase + [transition[1][1]]):
+                                score += self.weight_lookahead
+                                futureTestCase = futureTestCase + [transition[1][1]] if transition[1][1] not in futureTestCase else futureTestCase
+                                futureTestCase = futureTestCase + [transition[0][1]] if transition[0][1] not in futureTestCase else futureTestCase
+
+                        condition2 = transition[1] == (f, -v)
+                        if transition[1] == (f, -v) and transition[0][0] in currentTestCase and currentTestCase[transition[0][0]] == -1 * transition[0][1]:
+                            if transition[0][1] in futureTestCase or self.solver.checkSAT(futureTestCase + [transition[0][1]]):
+                                score += self.weight_lookahead
+                                futureTestCase = futureTestCase + [transition[0][1]] if transition[0][1] not in futureTestCase else futureTestCase
+                                futureTestCase = futureTestCase + [transition[1][1]] if transition[1][1] not in futureTestCase else futureTestCase
+
             scores.append(score)
         for score in scores:
             if score > bestScore:
@@ -111,6 +120,7 @@ class BuildingCTT:
     def selectBestTestCase(self, testCasePool, prevTestCase):
         candidates = []
         bestScore = -1
+        bestLookaheadscore = -1
         bestCost = None
         scores = []
         lookaheads = []
@@ -118,11 +128,9 @@ class BuildingCTT:
         for testCase in testCasePool:
             possibleInteractions = self.computeAllPairs(testCase)
             possibleTransitions = []
-            cost = None
+            #cost = None
             if prevTestCase is not None:
-                cost = sum([1 for v in testCase.values() if v not in prevTestCase.values()])
-                if cost == 0:
-                    print("wtf")
+                #cost = sum([1 for v in testCase.values() if v not in prevTestCase.values()])
                 possibleTransitions = [pair for pair in possibleInteractions if prevTestCase[pair[0][0]] != pair[0][1] and prevTestCase[pair[1][0]] != pair[1][1]]
 
             # ADD HEURISTICS HERE.
@@ -132,40 +140,56 @@ class BuildingCTT:
                 if set in self.unCovSets:
                     score += 1
 
-            for transition in self.unCovTransitions:
+            futureTestCase = []
+            lostscore = 0
+            shuffledUncovs = self.unCovTransitions.copy()
+            random.shuffle(shuffledUncovs)
+            for transition in shuffledUncovs:
                 if transition in possibleTransitions:
                     score += 1
                 else:
                     # LOOKAHEAD SCORES IF WE PREPARE FOR A FUTURE TRANSITION BY USING THIS TEST CASE.
                     if testCase[transition[0][0]] == -transition[0][1] and testCase[transition[1][0]] == -transition[1][1]:
-                        lookaheadscore += self.weight_lookahead
+                        tempFutureCase = futureTestCase + [t for t in [transition[0][1], transition[1][1]] if t not in futureTestCase]
+                        if self.solver.checkSAT(tempFutureCase):
+                            futureTestCase = tempFutureCase
+                            lookaheadscore += self.weight_lookahead
+                        else:
+                            lostscore += self.weight_lookahead
+            #print("scoring score is ", score, "lookaheadscore is ", lookaheadscore, "lost score is ", lostscore)
 
             scores.append(score)
             lookaheads.append(lookaheadscore)
-            costs.append(cost)
+            #costs.append(cost)
             cost_influence = 0
-            if self.weight_cost is not None and bestCost is not None and cost is not None and cost != 0 and bestCost != 0:
-                cost_influence = (cost - bestCost)/bestCost*self.weight_cost
-            if (score+lookaheadscore)*(1-cost_influence) > bestScore:
-                bestScore = score+lookaheadscore
-                bestCost = cost
+            #if self.weight_cost is not None and bestCost is not None and cost is not None and cost != 0 and bestCost != 0:
+            #    cost_influence = (cost - bestCost)/bestCost*self.weight_cost
+            if (score+lookaheadscore)*(1-cost_influence) > bestScore+bestLookaheadscore:
+                bestScore = score
+                bestLookaheadscore = lookaheadscore
+                #bestCost = cost
                 # print("Best score is " + str(bestScore) + ",  look ahead : " + str(lookaheadscore))
                 candidates = [testCase]
-            elif score+lookaheadscore == bestScore:
+            elif score+lookaheadscore == bestScore+bestLookaheadscore:
                 candidates.append(testCase)
         """print("----------")
         print(scores)
         print(lookaheads)
         print("----------")"""
+        #print(bestLookaheadscore, bestScore)
+        if self.stopgapmeasure and bestLookaheadscore > bestScore:
+            self.prevWasDecidedByLookahead = True
         return random.choice(candidates)
 
     def updateUnCovSets(self, testCase, prevTestCase):
         possibleInteractions = self.computeAllPairs(testCase)
         possibleTransitions = []
+        improvedCoverage = False
         if prevTestCase is not None:
             possibleTransitions = [pair for pair in possibleInteractions if prevTestCase[pair[0][0]] != pair[0][1] and prevTestCase[pair[1][0]] != pair[1][1]]
         for set in possibleInteractions:
             if set in self.unCovSets:
+                improvedCoverage = True
                 self.unCovSets.remove(set)
                 self.unCovPairsCount[set[0]] = self.unCovPairsCount[set[0]] - 1
                 self.unCovPairsCount[set[1]] = self.unCovPairsCount[set[1]] - 1
@@ -174,11 +198,13 @@ class BuildingCTT:
 
         for transition in possibleTransitions:
             if transition in self.unCovTransitions:
+                improvedCoverage = True
                 self.unCovTransitions.remove(transition)
                 self.unCovPairsCount[transition[0]] = self.unCovPairsCount[transition[0]] - 1
                 self.unCovPairsCount[transition[1]] = self.unCovPairsCount[transition[1]] - 1
                 if self.unCovPairsCount[transition[0]] < 0 or self.unCovPairsCount[transition[1]] < 0:
                     print("PROBLEM IN UPDATEUNCOVSETS; TRANSITIONS")
+        return improvedCoverage
 
     def computeAllPairs(self, testCase):
         possibleSets = []
@@ -274,49 +300,85 @@ class BuildingCTT:
             dupl2[key] = self.valuesForFactors[key][1]
             return [dupl1, dupl2]
 
-        while len(self.unCovSets) + len(self.unCovTransitions) > 0:
+        while len(self.unCovSets) + len(self.unCovTransitions) > 0 and len(self.coveringArray) <= self.limit:
             if self.verbose:
-                print("(" + str(self.numTests) + ") Current coverage: " + str(100-(len(self.unCovSets) + len(self.unCovTransitions))*100/self.totalNumberOfPairs) + "%")
-            testCasePool = []
+                coverage = 100-(len(self.unCovSets) + len(self.unCovTransitions))*100/self.totalNumberOfPairs
+                print("(" + str(self.numTests) + ") Current coverage: " + str(coverage) + "%")
+
+            #self.weight_lookahead = self.base_weight_lookahead
+            #if self.prevWasDecidedByLookahead:
+            #    if self.verbose:
+            #        print("stop gap measure")
+            #    self.weight_lookahead = 0
+            #    self.prevWasDecidedByLookahead = False
+
             prevTestCase = None if len(self.coveringArray) == 0 else self.coveringArray[-1]
-            for count in range(self.numCandidates):
-                # Add first pair of factor-value to the test case.
-                newTestCase = {}
-                pairsScores = self.computeScores(prevTestCase)
-                bestScore = max(pairsScores.values())
-                bestFactor, bestValue = random.choice([key for key, value in pairsScores.items() if value == bestScore])
-                newTestCase[bestFactor] = bestValue
+            if not self.bestOfBoth:
+                testCasePool = self.generateCandidates(prevTestCase, self.numCandidates)
+            else:
+                print("activating bestofboth ?")
+                testCasePool = self.generateCandidates(prevTestCase, round(self.numCandidates/2))
+                self.weight_lookahead = 0
+                testCasePool = testCasePool + self.generateCandidates(prevTestCase, round(self.numCandidates/2))
+                self.weight_lookahead = self.base_weight_lookahead
 
-                # Propagate this value using the SATsolver to find associated values.
-                newTestCase = self.propagateCurrentTestCase(newTestCase)
-
-                # Find a value for all other context and feature, in a random order.
-                shuffledRemainingFactors = [f for f in self.factors if f not in newTestCase]
-                random.shuffle(shuffledRemainingFactors)
-                for f in shuffledRemainingFactors:
-                    v = self.selectSpecificBestValue(f, newTestCase, prevTestCase)
-                    newTestCase[f] = v
-                    if not self.solver.checkSAT(newTestCase.values()):
-                        newTestCase[f] = -v
-
-                    # Propagate new values.
-                    newTestCase = self.propagateCurrentTestCase(newTestCase)
-
-                # Once the test case is built, this orders the keys in the dictionary; useless but pretty to the eyes when printed.
-                orderedNewTestCase = dict.fromkeys(self.systemData.getValuesForFactors())
-                # Adds the core values for a complete test case.
-                for key in orderedNewTestCase:
-                    if key in self.core:
-                        orderedNewTestCase[key] = self.core[key]
-                    else:
-                        orderedNewTestCase[key] = newTestCase[key]
-                testCasePool.append(orderedNewTestCase)
 
             # Selects the best test case among all candidates.
             if len(testCasePool) > 0:
                 bestTestCase = self.selectBestTestCase(testCasePool, prevTestCase)
+                #if prevTestCase is not None:
+                #    cost = sum([1 for v in bestTestCase.values() if v not in prevTestCase.values()])
+                #    if cost == 0:
+
+                improvedCoverage = self.updateUnCovSets(bestTestCase, prevTestCase)
+                #if not improvedCoverage:
+                #    self.weight_lookahead = 0.5
+                #    #self.halfLookahead = True
+                #    if self.verbose:
+                #        print("activating stop gap measure to prevent immobilisation")
+                #    testCasePool = self.generateCandidates(prevTestCase)
+                #    improvedCoverage = self.updateUnCovSets(bestTestCase, prevTestCase)
+                #    if not improvedCoverage:
+                #       print("stop gab measure failed, coverage did not increase")
+                #    bestTestCase = self.selectBestTestCase(testCasePool, prevTestCase)
+
                 self.coveringArray.append(bestTestCase)
-                self.updateUnCovSets(bestTestCase, prevTestCase)
                 self.numTests += 1
 
         return self.coveringArray.copy()
+
+    def generateCandidates(self, prevTestCase, candidates):
+        # Add first pair of factor-value to the test case.
+        testCasePool = []
+        for count in range(candidates):
+            newTestCase = {}
+            pairsScores = self.computeScores(prevTestCase)
+            bestScore = max(pairsScores.values())
+            bestFactor, bestValue = random.choice([key for key, value in pairsScores.items() if value == bestScore])
+            newTestCase[bestFactor] = bestValue
+
+            # Propagate this value using the SATsolver to find associated values.
+            newTestCase = self.propagateCurrentTestCase(newTestCase)
+
+            # Find a value for all other context and feature, in a random order.
+            shuffledRemainingFactors = [f for f in self.factors if f not in newTestCase]
+            random.shuffle(shuffledRemainingFactors)
+            for f in shuffledRemainingFactors:
+                v = self.selectSpecificBestValue(f, newTestCase, prevTestCase)
+                newTestCase[f] = v
+                if not self.solver.checkSAT(newTestCase.values()):
+                    newTestCase[f] = -v
+
+                # Propagate new values.
+                newTestCase = self.propagateCurrentTestCase(newTestCase)
+
+            # Once the test case is built, this orders the keys in the dictionary; useless but pretty to the eyes when printed.
+            orderedNewTestCase = dict.fromkeys(self.systemData.getValuesForFactors())
+            # Adds the core values for a complete test case.
+            for key in orderedNewTestCase:
+                if key in self.core:
+                    orderedNewTestCase[key] = self.core[key]
+                else:
+                    orderedNewTestCase[key] = newTestCase[key]
+            testCasePool.append(orderedNewTestCase)
+        return testCasePool
