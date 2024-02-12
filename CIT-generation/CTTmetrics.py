@@ -330,6 +330,57 @@ def SPLOTgraph():
     plt.show()
 
 
+def SPLOTweights(mode, recompute=False):
+    modelFiles = "../data/SPLOT/SPLOT-NEW/SPLOT-txt/"
+    constraintsFiles = "../data/SPLOT/SPLOT-NEW/SPLOT-txtconstraints/"
+    if "3" in mode:
+        storageCTT = "../data/SPLOT/SPLOT-NEW/SPLOT-Comparative/"
+    else:
+        storageCTT = "../data/SPLOT/SPLOT-NEW/SPLOT-Lookahead/"
+    minSize = 10
+    maxSize = 50
+    rangeCategory = [minSize, maxSize]
+    total = getNumberOfSPLOTModels(rangeCategory)
+    quty = 0
+    print("Computing model " + "0" + "/" + str(total) + " (category: " + str(rangeCategory) + ")", flush=True, end='')
+    sizes = [0 for i in range(1, 11)]
+    for filename in os.listdir(modelFiles):
+        txt = os.path.join(modelFiles, filename)
+        txtConstraints = os.path.join(constraintsFiles, filename)
+        s = SystemData(featuresFile=txt, extraConstraints=txtConstraints)
+        if minSize <= len(s.getFeatures()) < maxSize and transitionExist(s):
+            quty += 1
+            with concurrent.futures.ProcessPoolExecutor() as executor:
+                print("\rComputing model " + str(quty) + "/" + str(total) + " (category: " + str(
+                            rangeCategory) + ")", flush=True, end='')
+                tempThreadsList = []
+                for weight in range(1, 11):
+                    i_filter, w_la, w_c = recognizeMode(mode)
+                    if "3" in mode:
+                        w_la = 0.5
+                        w_c = weight/10
+                    else:
+                        w_c = 0.5
+                        w_la = weight/10
+                    tempStorageCTT = storageCTT + filename[:-4] + "-" + str(weight/10)
+                    sT2 = SystemData(featuresFile=txt, extraConstraints=txtConstraints)
+                    future = executor.submit(computeCTTSuite, tempStorageCTT, 0, sT2, interaction_filter=i_filter, weight_lookahead=w_la, weight_comparative=w_c, recompute=recompute)
+                    tempThreadsList.append(future)
+                for i in range(len(tempThreadsList)):
+                    sizes[i] += tempThreadsList[i].result().getCost()
+
+        # create graph
+    sizes = [s/quty for s in sizes]
+    plt.plot(np.linspace(0.1, 1, 10), sizes)
+    #plt.legend(['interaction coverage', 'transition coverage evolution'])
+    # plt.title('Number of switches in a test suite', fontsize=14)
+    if "3" in mode:
+        plt.xlabel('Comparative weight')
+    else:
+        plt.xlabel('Look-ahead weight')
+    plt.ylabel('Average sizes of generated test suites')
+    plt.show()
+
 def getSPLOTsuites(rangeCategory, modes, max_iterations=3, verbose=False, specificModel=None):
     if specificModel is not None:
         rangeCategory = [0, 100]
@@ -760,7 +811,8 @@ def SPLOTcreateTable(rangeCategories, recompute=False, verbose=False):
 
 if __name__ == '__main__':
     categories = [[10, 20], [20, 30], [30, 40], [40, 50], [50, 70], [70, 100]]
-    getCTTSPLOTresults(categories)
+    #getCTTSPLOTresults(categories)
+    SPLOTweights("1&2")
     # showAllSPLOTModels()
     #SPLOTmodels()
     #SPLOTcreateTable(categories[4:5], recompute=False, verbose=False)

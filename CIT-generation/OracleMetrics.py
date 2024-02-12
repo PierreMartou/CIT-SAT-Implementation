@@ -92,7 +92,9 @@ def debugging(filename, iteration=0):
     #    for i in range(len(testSuite)):
     #        print(testSuite[i])
 
-def SPLOTmetrics(rangeCategory, states=[2,3,4,5], recompute=False, verbose=False):
+def SPLOTmetrics(rangeCategory, states=None, recompute=False, verbose=False):
+    if states is None:
+        states = [2, 3, 4, 5]
     steps = [0 for s in states]
     cost = [0 for s in states]
     undetectables = [0 for s in states]
@@ -139,6 +141,6 @@ def SPLOTmetrics(rangeCategory, states=[2,3,4,5], recompute=False, verbose=False
 
 if __name__ == '__main__':
     categories = [[10, 20], [20, 30], [30, 40], [40, 50], [50, 70], [70, 100]]
-    #debugging("car_fm.txt", 1)
-    for r in categories[1:]:
-        SPLOTmetrics(r, [4], recompute=True, verbose=True)
+    #debugging("model_20130510_203163945.txt", 2)
+    for r in categories:
+        SPLOTmetrics(r, [4], recompute=False, verbose=True)
