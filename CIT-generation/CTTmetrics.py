@@ -216,8 +216,8 @@ def getNumberOfSPLOTModels(category=None):
     return total
 
 def SPLOTmodels(rangeCategory):
-    modelFiles = "../data/SPLOT/SPLOT-txt/"
-    constraintsFiles = "../data/SPLOT/SPLOT-txtconstraints/"
+    modelFiles = "../data/SPLOT/SPLOT-NEW/SPLOT-txt/"
+    constraintsFiles = "../data/SPLOT/SPLOT-NEW/SPLOT-txtconstraints/"
     # rangeCategory = [[10, 12], [12, 15], [15, 20], [20, 25], [25, 30], [30, 40], [40, 51]]
     sizeCategory = [0 for i in rangeCategory]
     total = 0
@@ -241,9 +241,9 @@ def SPLOTmodels(rangeCategory):
 
 
 def SPLOTimprovements():
-    modelFiles = "../data/SPLOT/SPLOT-txt/"
-    constraintsFiles = "../data/SPLOT/SPLOT-txtconstraints/"
-    storageCTT = "../data/SPLOT/SPLOT-TestSuitesCTT/"
+    modelFiles = "../data/SPLOT/SPLOT-NEW/SPLOT-txt/"
+    constraintsFiles = "../data/SPLOT/SPLOT-NEW/SPLOT-txtconstraints/"
+    storageCTT = "../data/SPLOT/SPLOT-NEW/SPLOT-TestSuitesCTT/"
     max_iterations = 10
     sizes = [0.0, 0.0, 0.0]
     stds = [0.0, 0.0, 0.0]
@@ -351,7 +351,7 @@ def SPLOTweights(mode, showSize=False, iteration=0, recompute=False, threading=F
         storageCTT = "../data/SPLOT/SPLOT-NEW/SPLOT-Lookahead/"
         max_iterations = 3
     minSize = 10
-    maxSize = 50
+    maxSize = 30
     rangeCategory = [minSize, maxSize]
     total = getNumberOfSPLOTModels(rangeCategory)
     quty = 0
@@ -400,20 +400,21 @@ def SPLOTweights(mode, showSize=False, iteration=0, recompute=False, threading=F
                     if "3" in mode:
                         if weight==0:
                             noComparative = sum(currSizes)/max_iterations
-                        #sizes[weight - min(weightRange)] += 1 if sum(currSizes)/max_iterations < noComparative else 0
-                        sizes[weight-min(weightRange)] += np.std(currSizes)
+                        sizes[weight - min(weightRange)] += 1 if sum(currSizes)/max_iterations < noComparative else 0
+                        #sizes[weight-min(weightRange)] += np.std(currSizes)
                         costs[weight-min(weightRange)] += np.std(currCosts)
                     else:
                         sizes[weight-min(weightRange)] += sum(currSizes)/max_iterations
                         costs[weight-min(weightRange)] += sum(currCosts) / max_iterations
 
         # create graph
-    #sizes = [s/quty*100 for s in sizes[1:]] #[23.6] +
-    sizes = [s / quty for s in sizes]
+    sizes = [s/quty*100 for s in sizes[1:]] #[23.6] +
+    #sizes = [s/quty for s in sizes]
     costs = [s/quty for s in costs]
     fontsize=18
     if "3" in mode:
         plt.ylabel('Percentage of suites improved by the comparative improvement', fontsize=fontsize)
+        plt.plot([w / 10 for w in weightRange][1:], sizes)
     else:
         if showSize:
             plt.plot([w/10 for w in weightRange], sizes)
@@ -589,11 +590,6 @@ def SPLOTresults(rangeCategory, recompute=False, computeMetrics=True, latex=Fals
     constraintsFiles = "../data/SPLOT/SPLOT-NEW/SPLOT-txtconstraints/"
     storageCIT = "../data/SPLOT/SPLOT-NEW/SPLOT-TestSuitesCIT/"
     storageCTT = "../data/SPLOT/SPLOT-NEW/SPLOT-TestSuitesCTT/"
-
-    #modelFiles = "../data/SPLOT/SPLOT-txt/"
-    #constraintsFiles = "../data/SPLOT/SPLOT-txtconstraints/"
-    #storageCIT = "../data/SPLOT/SPLOT-TestSuitesCIT/"
-    #storageCTT = "../data/SPLOT/SPLOT-TestSuitesCTT/"
 
     threading = False
     max_iterations = 2
