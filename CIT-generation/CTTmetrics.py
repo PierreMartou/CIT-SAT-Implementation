@@ -271,11 +271,11 @@ def SPLOTimprovements():
     print("Stds for modes 0, 12, 123 : " + str(stds))
 
 def SPLOTgraph():
-    modelFiles = "../data/SPLOT/SPLOT-txt/"
-    constraintsFiles = "../data/SPLOT/SPLOT-txtconstraints/"
-    storageCIT = "../data/SPLOT/SPLOT-TestSuitesCIT/"
-    storageCTT = "../data/SPLOT/SPLOT-TestSuitesCTT/"
-    max_iterations = 2
+    modelFiles = "../data/SPLOT/SPLOT-NEW/SPLOT-txt/"
+    constraintsFiles = "../data/SPLOT/SPLOT-NEW/SPLOT-txtconstraints/"
+    storageCIT = "../data/SPLOT/SPLOT-NEW/SPLOT-TestSuitesCIT/"
+    storageCTT = "../data/SPLOT/SPLOT-NEW/SPLOT-TestSuitesCTT/"
+    max_iterations = 3
     sizesCIT = {}
     sizesCTT = {}
     font = {'size': 16}
@@ -287,13 +287,13 @@ def SPLOTgraph():
         txtConstraints = os.path.join(constraintsFiles, filename)
         s = SystemData(featuresFile=txt, extraConstraints=txtConstraints)
         size = len(s.getFeatures())
-        if size >9 and size < 60 and (size not in sizesCIT or len(sizesCIT[size]) < 10) and transitionExist(s):
+        if size >9 and size < 100 and transitionExist(s):
             if size not in sizesCIT:
                 sizesCIT[size] = []
                 sizesCTT[size] = []
             for iteration in range(max_iterations):
                 tempStorageCIT = storageCIT + filename[:-4] + "-"
-                testSuite = computeCITSuite(tempStorageCIT, iteration, s)
+                testSuite = computeCITSuite(tempStorageCIT, iteration, s, recompute=False)
                 # if testSuite.getLength() >= 20:
                 #    print(filename)
                 sizesCIT[size].append(testSuite.getLength())
@@ -301,9 +301,7 @@ def SPLOTgraph():
                 for mode in modes:
                     tempStorageCTT = storageCTT + filename[:-4] + "-" + mode + "-"
                     i_filter, w_la, w_c = recognizeMode(mode)
-                    testSuite = computeCTTSuite(tempStorageCTT, iteration, s, 30, i_filter, w_la, w_c)
-                    if testSuite.getLength() >= 60:
-                        print(filename)
+                    testSuite = computeCTTSuite(tempStorageCTT, iteration, s, 30, i_filter, w_la, w_c, recompute=False)
                     sizesCTT[size].append(testSuite.getLength())
     x = list(sizesCIT.keys())
     x.sort()
@@ -312,8 +310,8 @@ def SPLOTgraph():
     for size in x:
         yCIT.append(sum(sizesCIT[size]) / len(sizesCIT[size]))
         yCTT.append(sum(sizesCTT[size]) / len(sizesCTT[size]))
-    print(yCIT)
-    print(yCTT)
+    #print(yCIT)
+    #print(yCTT)
     print("Correlation coefficient : " + str(scistats.pearsonr(yCIT, yCTT)))
     print("Factor more : " + str(sum(yCTT) / sum(yCIT)))
 
@@ -330,20 +328,37 @@ def SPLOTgraph():
     plt.show()
 
 
-def SPLOTweights(mode, recompute=False):
+def computeCorrelation(sizesCIT, sizesCTT):
+    x = list(sizesCIT.keys())
+    x.sort()
+    yCIT = []
+    yCTT = []
+    for size in x:
+        yCIT.append(sum(sizesCIT[size]) / len(sizesCIT[size]))
+        yCTT.append(sum(sizesCTT[size]) / len(sizesCTT[size]))
+    # print(yCIT)
+    # print(yCTT)
+    print("Correlation coefficient : " + str(scistats.pearsonr(yCIT, yCTT)))
+    print("Factor more : " + str(sum(yCTT) / sum(yCIT)))
+
+def SPLOTweights(mode, showSize=False, iteration=0, recompute=False, threading=False):
     modelFiles = "../data/SPLOT/SPLOT-NEW/SPLOT-txt/"
     constraintsFiles = "../data/SPLOT/SPLOT-NEW/SPLOT-txtconstraints/"
     if "3" in mode:
         storageCTT = "../data/SPLOT/SPLOT-NEW/SPLOT-Comparative/"
+        max_iterations = 4
     else:
         storageCTT = "../data/SPLOT/SPLOT-NEW/SPLOT-Lookahead/"
+        max_iterations = 3
     minSize = 10
     maxSize = 50
     rangeCategory = [minSize, maxSize]
     total = getNumberOfSPLOTModels(rangeCategory)
     quty = 0
     print("Computing model " + "0" + "/" + str(total) + " (category: " + str(rangeCategory) + ")", flush=True, end='')
-    sizes = [0 for i in range(1, 11)]
+    weightRange = range(0, 11)
+    sizes = [0 for i in weightRange]
+    costs = [0 for i in weightRange]
     for filename in os.listdir(modelFiles):
         txt = os.path.join(modelFiles, filename)
         txtConstraints = os.path.join(constraintsFiles, filename)
@@ -352,40 +367,72 @@ def SPLOTweights(mode, recompute=False):
             quty += 1
             with concurrent.futures.ProcessPoolExecutor() as executor:
                 print("\rComputing model " + str(quty) + "/" + str(total) + " (category: " + str(
-                            rangeCategory) + ")", flush=True, end='')
-                tempThreadsList = []
-                for weight in range(1, 11):
+                            rangeCategory) + ") " + str(iteration) + "/"+str(max_iterations), flush=True, end='')
+                noComparative=0
+                for weight in weightRange:
                     i_filter, w_la, w_c = recognizeMode(mode)
                     if "3" in mode:
-                        w_la = 0.5
+                        w_la = 0.7
                         w_c = weight/10
                     else:
                         w_c = 0.5
                         w_la = weight/10
-                    tempStorageCTT = storageCTT + filename[:-4] + "-" + str(weight/10)
-                    sT2 = SystemData(featuresFile=txt, extraConstraints=txtConstraints)
-                    future = executor.submit(computeCTTSuite, tempStorageCTT, 0, sT2, interaction_filter=i_filter, weight_lookahead=w_la, weight_comparative=w_c, recompute=recompute)
-                    tempThreadsList.append(future)
-                for i in range(len(tempThreadsList)):
-                    sizes[i] += tempThreadsList[i].result().getCost()
+
+                    currSizes = []
+                    currCosts = []
+                    suites = []
+                    tempThreadsList = []
+                    for iteration in range(max_iterations):
+                        tempStorageCTT = storageCTT + filename[:-4] + "-" + str(weight/10)
+                        sT2 = SystemData(featuresFile=txt, extraConstraints=txtConstraints)
+                        if recompute or threading:
+                            future = executor.submit(computeCTTSuite, tempStorageCTT, iteration, sT2, interaction_filter=i_filter, weight_lookahead=w_la, weight_comparative=w_c, recompute=recompute)
+                            tempThreadsList.append(future)
+                        else:
+                            suites.append(computeCTTSuite(tempStorageCTT, iteration, sT2, interaction_filter=i_filter, weight_lookahead=w_la, weight_comparative=w_c, recompute=recompute))
+                            tempThreadsList.append(0)
+
+                    for i in range(len(tempThreadsList)):
+                        if recompute or threading:
+                            suites.append(tempThreadsList[i].result())
+                        currSizes.append(suites[i].getLength())
+                        currCosts.append(suites[i].getCost())
+                    if "3" in mode:
+                        if weight==0:
+                            noComparative = sum(currSizes)/max_iterations
+                        #sizes[weight - min(weightRange)] += 1 if sum(currSizes)/max_iterations < noComparative else 0
+                        sizes[weight-min(weightRange)] += np.std(currSizes)
+                        costs[weight-min(weightRange)] += np.std(currCosts)
+                    else:
+                        sizes[weight-min(weightRange)] += sum(currSizes)/max_iterations
+                        costs[weight-min(weightRange)] += sum(currCosts) / max_iterations
 
         # create graph
-    sizes = [s/quty for s in sizes]
-    plt.plot(np.linspace(0.1, 1, 10), sizes)
+    #sizes = [s/quty*100 for s in sizes[1:]] #[23.6] +
+    sizes = [s / quty for s in sizes]
+    costs = [s/quty for s in costs]
+    fontsize=18
+    if "3" in mode:
+        plt.ylabel('Percentage of suites improved by the comparative improvement', fontsize=fontsize)
+    else:
+        if showSize:
+            plt.plot([w/10 for w in weightRange], sizes)
+            plt.ylabel('Average size of generated test suites', fontsize=fontsize)
+        else:
+            plt.plot([w/10 for w in weightRange], costs)
+            plt.ylabel('Average cost of generated test suites', fontsize=fontsize)
     #plt.legend(['interaction coverage', 'transition coverage evolution'])
     # plt.title('Number of switches in a test suite', fontsize=14)
     if "3" in mode:
-        plt.xlabel('Comparative weight')
+        plt.xlabel('Comparative weight', fontsize=fontsize)
     else:
-        plt.xlabel('Look-ahead weight')
-    plt.ylabel('Average sizes of generated test suites')
+        plt.xlabel('Look-ahead weight', fontsize=fontsize)
     plt.show()
 
-def getSPLOTsuites(rangeCategory, modes, max_iterations=3, verbose=False, specificModel=None):
+
+def getSPLOTsuites(rangeCategory, modes, max_iterations=3, verbose=False, specificModel=None, recompute=False, threading=True):
     if specificModel is not None:
         rangeCategory = [0, 100]
-    recompute=False
-    threading=True
     modelFiles = "../data/SPLOT/SPLOT-NEW/SPLOT-txt/"
     constraintsFiles = "../data/SPLOT/SPLOT-NEW/SPLOT-txtconstraints/"
     storageCIT = "../data/SPLOT/SPLOT-NEW/SPLOT-TestSuitesCIT/"
@@ -421,7 +468,7 @@ def getSPLOTsuites(rangeCategory, modes, max_iterations=3, verbose=False, specif
                             rangeCategory) + "), model " + str(filename), flush=True, end='')
                     tempStorageCIT = storageCIT + filename[:-4] + "-"
                     for iteration in range(max_iterations):
-                        if threading:
+                        if False:
                             sT = SystemData(featuresFile=txt, extraConstraints=txtConstraints)
                             future = executor.submit(computeCITSuite, tempStorageCIT, iteration, sT, candidates,recompute=recompute)
                             threadsCIT.append(future)
@@ -430,7 +477,7 @@ def getSPLOTsuites(rangeCategory, modes, max_iterations=3, verbose=False, specif
 
                         tempThreadsList = []
                         tempSuiteList = []
-                        if threading:
+                        if False:
                             fileCITsuites.append(threadsCIT[-1].result())
                         templimit = fileCITsuites[-1].getLength() * limitMultiplier
                         if verbose:
@@ -469,15 +516,18 @@ def getSPLOTsuites(rangeCategory, modes, max_iterations=3, verbose=False, specif
     return allCITsuites, allCTTsuites
 
 
-def getCTTSPLOTresults(rangeCategories, recompute=False, latex=True):
-    print("#feature\tQty\t\tSize\t\t\t\t\t\t\t\t\tCost\t\t\t\t\t\t\t\t\t\t\t\t\t\tT. cov.")
-    print("\t\t\t\t\tCTT0\tCTT1\tCTT1&2\tCTT1&2&3\tCTT0\tCTT1\tCTT1&2\tCTT1&2&3")
+def getCTTSPLOTresults(rangeCategories, recompute=False, latex=True, onlyCIT=False):
     modes = ["0", "1", "1&2", "1&2&3"]
     max_iterations = 3
     for r in rangeCategories:
-        allCITsuites, allCTTsuites = getSPLOTsuites(r, modes, max_iterations=max_iterations)
+        threading = recompute
+        allCITsuites, allCTTsuites = getSPLOTsuites(r, modes, max_iterations=max_iterations, threading=threading, recompute=recompute)
         quty = len(allCTTsuites)
-        print(quty)
+        limit = 0
+        sizesCIT = sum([t.getLength() for ts in allCITsuites for t in ts])
+        #costsCITDiss = sum([t.getCost("dissimilarity") for ts in allCITsuites for t in ts])
+        #costsCITCost = sum([t.getCost("minimized") for ts in allCITsuites for t in ts])
+
         sizesCTT = [0 for i in range(len(modes))]
         costsCTT = [0 for i in range(len(modes))]
         stdSizesCTT = [0 for i in range(len(modes))]
@@ -486,16 +536,18 @@ def getCTTSPLOTresults(rangeCategories, recompute=False, latex=True):
         for suites in allCTTsuites:
             for mode in modes:
                 suiteMode = suites[modes.index(mode)]
-                stdSizesCTT[modes.index(mode)] += np.std([s.getLength() for s in suiteMode])
-                stdCostsCTT[modes.index(mode)] += np.std([s.getCost() for s in suiteMode])
                 for testSuite in suiteMode:
+                    limit += testSuite.getLimit()
                     if testSuite.isOffLimit():
                         NA[modes.index(mode)] += 1
                     else:
                         sizesCTT[modes.index(mode)] += testSuite.getLength()
                         costsCTT[modes.index(mode)] += testSuite.getCost()
+                stdSizesCTT[modes.index(mode)] += np.std([s.getLength() for s in suiteMode])
+                stdCostsCTT[modes.index(mode)] += np.std([s.getCost() for s in suiteMode])
 
         normalise = quty * max_iterations
+        limit = round(limit/(normalise*len(modes)), 1)
         stdSizesCTT = [round(s/quty, 1) for s in stdSizesCTT]
         stdCostsCTT = [round(s/quty, 1) for s in stdCostsCTT]
         sizesCTT = [round(sizesCTT[i] / (normalise - NA[i]), 1) if (normalise - NA[i]) > 0 else "N/A" for i in
@@ -506,41 +558,28 @@ def getCTTSPLOTresults(rangeCategories, recompute=False, latex=True):
         toPrint = ""
         ranges = str(r[0]) + "-" + str(r[1] - 1)
         NA = [round(na / normalise * 100, 1) for na in NA]
-        sizesCTT = [str(sizesCTT[i]) + "+-" + str(stdSizesCTT[i]) + "(" + str(NA[i]) + "%)" for i in range(len(sizesCTT))]
-        costsCTT = [str(costsCTT[i]) + "+-" + str(stdCostsCTT[i]) + "(" + str(NA[i]) + "%)" for i in range(len(costsCTT))]
+
+        print("#feature\tQty\t\tSize\t\t\t\t\t\t\t\t\tCost\t\t\t\t\t\t\t\t\t\t\t\t")
+        print("\t\t\t\t\tCTT0\tCTT1\tCTT1&2\tCTT1&2&3\tCTT0\tCTT1\tCTT1&2\tCTT1&2&3")
+        sizesCTT = [str(sizesCTT[i]) + "$\pm$" + str(stdSizesCTT[i]) + " (" + str(NA[i]) + "%)" for i in range(len(sizesCTT))]
+        costsCTT = [str(costsCTT[i]) + "$\pm$" + str(stdCostsCTT[i]) + " (" + str(NA[i]) + "%)" for i in range(len(costsCTT))]
         if latex:
             delimiter = " & "
         else:
             delimiter = "\t"
-        for arg in [ranges, quty] + sizesCTT + costsCTT:
+        for arg in [ranges, quty, limit] + sizesCTT + costsCTT:
             toPrint += str(arg) + delimiter
         toPrint = toPrint.replace("%", "\%")
         if latex:
-            print(toPrint[:-2] + " \\\\\\hline")
+            print("\r" + toPrint[:-2] + " \\\\\\hline", flush=True)
         else:
             print("\r" + toPrint, flush=True)
 
-def getCITSPLOTresuls(rangeCategories, recompute=False, latex=False):
-    print("#feature\tQty\t\tSize\t\tCost\t\t\t\t\T. cov.")
-    print("\t\t\t\t\tCIT\tCIT Diss\tCIT Cost\tCIT Diss\tCIT Cost")
-    max_iterations = 3
-    modes = []
-    for r in rangeCategories:
-        allCITsuites, allCTTsuites = getSPLOTsuites(r, modes, max_iterations=max_iterations)
-        quty = len(allCITsuites)
-        costCIT = [0, 0]
-        sizesCIT = 0
-        normalise = quty * max_iterations
-        for suites in allCITsuites:
-            for s in suites:
-                sizesCIT += s.getLength()
-                costCIT[0] += s.getCost("dissimilarity")
-                costCIT[1] += s.getCost("minimized")
-
-        sizeCIT = round(sizeCIT / normalise, 1)
-        costCIT = [round(c / normalise, 1) for c in costCIT]
-        transitionCoverage = [round(t / normalise, 1) for t in transitionCoverage]
-
+        print("#feature\tQty\t\tSize\t\t\t\t\t\t\tCost\t\t\t\t\t\t\t\t\t\tT. cov.")
+        print("\t\t\t\t\tCIT\tCTT\tCTT\tCIT Diss\t CIT Cost\tCIT Diss\t CIT Cost")
+        sizesCIT = round(sizesCIT/normalise, 1)
+        costsCIT = round(costsCIT/normalise, 1)
+        #for arg in [ranges, quty, sizesCIT, sizesCTT[-1], costsCITDiss, costsCITCost, costsCTT[-1]]
 
 def SPLOTresults(rangeCategory, recompute=False, computeMetrics=True, latex=False, specificModel = None, verbose=False):
     recomputeCIT = False
@@ -556,7 +595,7 @@ def SPLOTresults(rangeCategory, recompute=False, computeMetrics=True, latex=Fals
     #storageCIT = "../data/SPLOT/SPLOT-TestSuitesCIT/"
     #storageCTT = "../data/SPLOT/SPLOT-TestSuitesCTT/"
 
-    threading = True
+    threading = False
     max_iterations = 2
     limitMultiplier = 5
 
@@ -699,10 +738,11 @@ def SPLOTresults(rangeCategory, recompute=False, computeMetrics=True, latex=Fals
     costsCTT = [str(costsCTT[i]) + "(" + str(NA[i]) + "%)" for i in range(len(costsCTT))]
     if latex:
         delimiter = " & "
-        for arg in [ranges, quty, sizeCIT] + sizesCTT + costCIT + costsCTT + transitionCoverage:
+        #for arg in [ranges, quty, sizeCIT] + sizesCTT + costCIT + costsCTT + transitionCoverage:
+        for arg in [ranges, quty, sizeCIT, sizesCTT[-1]] + costCIT + costsCTT[-1:] + transitionCoverage:
             toPrint += str(arg) + delimiter
         toPrint = toPrint.replace("%", "\%")
-        print(toPrint[:-2] + " \\\\\\hline")
+        print("\r" + toPrint[:-2] + " \\\\\\hline", flush=True)
     else:
         delimiter = "\t\t"
         for arg in [ranges, quty]:
@@ -737,22 +777,22 @@ def recognizeMode(mode):
     elif mode == "1":
         i_filter = True
     elif mode == "2":
-        w_la = 0.5
+        w_la = 0.7
     elif mode == "3":
-        w_c = 0.3
+        w_c = 0.5
     elif mode == "1&2" or mode == "1\\&2":
         i_filter = True
-        w_la = 0.5
+        w_la = 0.7
     elif mode == "1&2&3" or mode == "1\\&2\\&3":
         i_filter = True
-        w_la = 0.5
-        w_c = 0.3
+        w_la = 0.7
+        w_c = 0.5
     elif mode == "1&3" or mode == "1\\&3":
         i_filter = True
-        w_c = 0.3
+        w_c = 0.5
     elif mode == "2&3" or mode == "2\\&3":
-        w_la = 0.5
-        w_c = 0.3
+        w_la = 0.7
+        w_c = 0.5
     else:
         print("UNRECOGNIZED MODE")
     return i_filter, w_la, w_c
@@ -809,15 +849,38 @@ def SPLOTcreateTable(rangeCategories, recompute=False, verbose=False):
     for r in rangeCategories:
         SPLOTresults(r, recompute=recompute, computeMetrics=True, verbose=verbose, latex=True)
 
+def SPLOTweightsSTD(std=True):
+    max_iterations = 3
+    sizes = [[] for i in range(1, 11)]
+    costs = [[] for i in range(1, 11)]
+    for i in range(max_iterations):
+        s, c = SPLOTweights("1&2&3", showSize=False, recompute=False, iteration=i, threading=False, returned=True, std=True)
+        for i in range(len(sizes)):
+            sizes[i].append(s[i])
+            costs[i].append(c[i])
+    #if std:
+    #    sizes = [np.std(s) for s in sizes]
+    #    costs = [np.std(c) for c in costs]
+    #else:
+    sizes = [sum(s)/max_iterations for s in sizes]
+    costs = [sum(s) / max_iterations for s in costs]
+    plt.plot(np.linspace(0.1, 1, 10), sizes)
+    plt.xlabel
+
+    plt.show()
+
 if __name__ == '__main__':
+    import cProfile
+    #cProfile.run('SPLOTweights("1&2")')
     categories = [[10, 20], [20, 30], [30, 40], [40, 50], [50, 70], [70, 100]]
-    #getCTTSPLOTresults(categories)
-    SPLOTweights("1&2")
+    #getCTTSPLOTresults([[10, 100]], recompute=False, onlyCIT=True)
+    #SPLOTweightsSTD(True)
+    SPLOTweights("1&2&3", threading=False, showSize=True)
     # showAllSPLOTModels()
     #SPLOTmodels()
-    #SPLOTcreateTable(categories[4:5], recompute=False, verbose=False)
+    #SPLOTcreateTable(categories, recompute=False, verbose=False)
     #SPLOTresults(categories[-1], recompute=True, computeMetrics=False, verbose=True, specificModel="model_20161127_1823059506.txt")
-    # SPLOTgraph()
+    #SPLOTgraph()
     # SPLOTimprovements()
     # getCITcoverage()
     #  ["0", "1", "1&2", "2", "3", "2&3", "1&3", "1&2&3"]

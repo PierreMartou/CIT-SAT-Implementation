@@ -4,12 +4,11 @@ import pickle
 import os
 
 def computeAlts(fpath, s, testSuite, tag=0, states=4, recompute=False):
-    version = "1.0.1"
-    filepath = fpath + ".pkl"
+    version = "1.0.2"
+    filepath = fpath + "-" + str(states) + ".pkl"
     if os.path.exists(filepath) and not recompute:
         alts = readAlts(filepath)
         if not alts.isUpToDate(version):
-            print("should never go here")
             alts = AlternativePaths(s, states, version)
     else:
         alts = AlternativePaths(s, states, version)

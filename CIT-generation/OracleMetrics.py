@@ -1,8 +1,11 @@
+import concurrent.futures
+
 from OracleSolver import OracleSolver
 from SystemData import SystemData
 from TestSuite import *
 from AlternativePaths import AlternativePaths, computeAlts
-from CTTmetrics import getSPLOTsuites, getNumberOfSPLOTModels
+from CTTmetrics import getSPLOTsuites, getNumberOfSPLOTModels, smoothLinearApprox, computeCorrelation
+import matplotlib.pyplot as plt
 
 
 def printOriginalVsAlterativePaths(originalTestSuite, alternatives):
@@ -92,11 +95,13 @@ def debugging(filename, iteration=0):
     #    for i in range(len(testSuite)):
     #        print(testSuite[i])
 
-def SPLOTmetrics(rangeCategory, states=None, recompute=False, verbose=False):
+def oracleSPLOTmetrics(rangeCategory, states=None, recompute=False, verbose=False):
     if states is None:
         states = [2, 3, 4, 5]
     steps = [0 for s in states]
     cost = [0 for s in states]
+    NAltsPaths = [0 for s in states]
+    NAltsPerGroup = [0 for s in states]
     undetectables = [0 for s in states]
     max_iterations = 3
     modelFiles = "../data/SPLOT/SPLOT-NEW/SPLOT-txt/"
@@ -104,10 +109,16 @@ def SPLOTmetrics(rangeCategory, states=None, recompute=False, verbose=False):
     storageCTT = "../data/SPLOT/SPLOT-NEW/SPLOT-TestSuitesCTT/"
     storageAlts = "../data/SPLOT/SPLOT-NEW/SPLOT-Alts/"
     quty = 0
-    candidates = 20
     total = getNumberOfSPLOTModels(rangeCategory)
     print("Computing model " + "0" + "/" + str(total) + " (category: " + str(rangeCategory) + ")", flush=True, end='')
+    init = 0
+    stop = 35
+    sizesOracle = {}
+    sizesCTT = {}
     for filename in os.listdir(modelFiles):
+        #init += 1
+        #if init == stop:
+        #    break
         txt = os.path.join(modelFiles, filename)
         txtConstraints = os.path.join(constraintsFiles, filename)
         s = SystemData(featuresFile=txt, extraConstraints=txtConstraints)
@@ -116,31 +127,77 @@ def SPLOTmetrics(rangeCategory, states=None, recompute=False, verbose=False):
             tempStorageCTT = storageCTT + filename[:-4] + "-1&2&3-"
             for iteration in range(max_iterations):
                 print("\rComputing model " + str(quty) + "/" + str(total), iteration+1, "/", max_iterations, " (category: " + str(rangeCategory) + "), model " + str(filename), flush=True, end='')
-                currSuite = computeCTTSuite(tempStorageCTT, iteration, s).getUnorderedTestSuite()
+                computedSuite = computeCTTSuite(tempStorageCTT, iteration, s, recompute=False)
+                size = len(s.getFeatures())
+                if size in sizesCTT:
+                    sizesCTT[size].append(computedSuite.getLength())
+                else:
+                    sizesCTT[size] = [computedSuite.getLength()]
+
+                currSuite = computedSuite.getUnorderedTestSuite()
                 for state in states:
                     id = state-min(states)
                     tempstorageAlts = storageAlts + filename[:-4]
-                    paths, undetectable = computeAlts(tempstorageAlts, s, currSuite, iteration, state, recompute)
+                    paths, undetectable = computeAlts(tempstorageAlts, s, currSuite, tag=iteration, states=state, recompute=recompute)
                     undetectables[id] += undetectable
                     lengthAndCost = [t.getShortenedLengthAndCost() for p in paths for t in p]
+                    #print("Max steps :", max([t[0] - 2 for t in lengthAndCost]), " sum of steps : ", sum([t[0] - 2 for t in lengthAndCost]))
                     #averageNumberOfPaths = sum([len(p) for p in paths]) / len(paths)
                     steps[id] += sum([t[0] - 2 for t in lengthAndCost])
                     cost[id] += sum([t[1] for t in lengthAndCost])
+                    NAltsPaths[id] += sum([1 for p in paths for t in p])
+                    NAltsPerGroup[id] += sum([len(p) for p in paths])/len(paths)
+                    #toAddToSizesOracle = sum([t[0] - 2 for t in lengthAndCost])
+                    toAddToSizesOracle = sum([1 for p in paths for t in p])
+                    if size in sizesOracle:
+                        sizesOracle[size].append(toAddToSizesOracle)
+                    else:
+                        sizesOracle[size] = [toAddToSizesOracle]
 
+    computeCorrelation(sizesCTT, sizesOracle)
     normalise = quty*max_iterations
     steps = [round(s/normalise, 1) for s in steps]
     cost = [round(c/normalise, 1) for c in cost]
     undetectables = [str(round(u*100 / normalise, 1)) + "%" for u in undetectables]
+
+    NAltsPaths = [round(na/normalise, 1) for na in NAltsPaths]
+    NAltsPerGroup = [round(napg/normalise, 2) for napg in NAltsPerGroup]
     delimiter = " & "
     toPrint = ""
-    for arg in [steps[-1]] + [cost[-1]] + [undetectables[-1]]:
-        toPrint += str(arg) + delimiter
-    toPrint = toPrint.replace("%", "\%")
-    print(toPrint[:-2] + " \\\\\\hline")
+    ranges = str(rangeCategory[0]) + "-" + str(rangeCategory[1] - 1)
+    if len(states) > 1:
+        font = {'size': 16}
+        plt.rc('font', **font)
+        plt.xlabel("N")
+        plt.ylabel("Number of intermediate configurations")
+        x1_smooth, y1_smooth = smoothLinearApprox(states, steps)
+        plt.plot(x1_smooth, y1_smooth, '-')
+        plt.show()
+    else:
+        for arg in [ranges, total] + steps + NAltsPaths + NAltsPerGroup+ cost + undetectables:
+            toPrint += str(arg) + delimiter
+        toPrint = toPrint.replace("%", "\%")
+        print("\r" + toPrint[:-2] + " \\\\\\hline", flush=True)
 
 
 if __name__ == '__main__':
     categories = [[10, 20], [20, 30], [30, 40], [40, 50], [50, 70], [70, 100]]
     #debugging("model_20130510_203163945.txt", 2)
+    #with concurrent.futures.ProcessPoolExecutor() as executor:
+    #    futures = []
+    #    futures.append(executor.submit(oracleSPLOTmetrics, [10, 30], [2, 3, 4, 5, 6], recompute=False, verbose=True))
+    #    futures.append(executor.submit(oracleSPLOTmetrics, [30, 40], [2, 3, 4, 5, 6], recompute=False, verbose=True))
+    #    futures.append(executor.submit(oracleSPLOTmetrics, [50, 60], [2, 3, 4, 5, 6], recompute=False, verbose=True))
+    #    futures.append(executor.submit(oracleSPLOTmetrics, [70, 80], [2, 3, 4, 5, 6], recompute=False, verbose=True))
+    #    futures.append(executor.submit(oracleSPLOTmetrics, [80, 90], [2, 3, 4, 5, 6], recompute=False, verbose=True))
+    #    futures.append(executor.submit(oracleSPLOTmetrics, [90, 100], [2, 3, 4, 5, 6], recompute=False, verbose=True))
+    #    done = 0
+    #    for f in futures:
+    #        done += 1
+    #        f.result()
+    #       print("done :", done)
+
+    oracleSPLOTmetrics([10, 100], [2, 3, 4, 5, 6], recompute=False, verbose=True)
+
     for r in categories:
-        SPLOTmetrics(r, [4], recompute=False, verbose=True)
+        oracleSPLOTmetrics(r, [6], recompute=False, verbose=True)

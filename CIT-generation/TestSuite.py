@@ -19,7 +19,7 @@ def computeCITSuite(fpath, iteration, s, candidates=30, recompute=False):
     return testSuite
 
 
-def computeCTTSuite(fpath, iteration, s, candidates=20, interaction_filter=True, weight_lookahead=0.5, weight_comparative=0.3, recompute=False, limit=1000, verbose=False):
+def computeCTTSuite(fpath, iteration, s, candidates=20, interaction_filter=True, weight_lookahead=0.7, weight_comparative=0.3, recompute=False, limit=1000, verbose=False):
     version = "1.0.1"
     filepath = fpath + str(iteration)+".pkl"
     if os.path.exists(filepath) and not recompute:
@@ -73,6 +73,9 @@ class TestSuite:
         if computeRearrangements:
             self.computeAllRearrangements()
         self.suiteShortened = None
+
+    def getLimit(self):
+        return self.limit
 
     def isUpToDate(self, version):
         if hasattr(self, "version"):
