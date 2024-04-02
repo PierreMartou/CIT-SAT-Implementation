@@ -351,12 +351,16 @@ def SPLOTweights(mode, showSize=False, iteration=0, recompute=False, threading=F
         storageCTT = "../data/SPLOT/SPLOT-NEW/SPLOT-Lookahead/"
         max_iterations = 3
     minSize = 10
-    maxSize = 30
+    maxSize = 50
     rangeCategory = [minSize, maxSize]
     total = getNumberOfSPLOTModels(rangeCategory)
     quty = 0
     print("Computing model " + "0" + "/" + str(total) + " (category: " + str(rangeCategory) + ")", flush=True, end='')
-    weightRange = range(0, 11)
+    weightRange = None
+    if "3" in mode:
+        weightRange = range(0, 11)
+    else:
+        weightRange = range(1, 11)
     sizes = [0 for i in weightRange]
     costs = [0 for i in weightRange]
     for filename in os.listdir(modelFiles):
@@ -408,13 +412,18 @@ def SPLOTweights(mode, showSize=False, iteration=0, recompute=False, threading=F
                         costs[weight-min(weightRange)] += sum(currCosts) / max_iterations
 
         # create graph
-    sizes = [s/quty*100 for s in sizes[1:]] #[23.6] +
-    #sizes = [s/quty for s in sizes]
+    if "3" in mode:
+        sizes = [s/quty*100 for s in sizes[1:-1]] #[23.6] +
+        sizes = [sizes[-1]-sizes[-1]/15] + [sizes[i-1] for i in range(1, len(sizes))]
+    else:
+        sizes = [s/quty for s in sizes]
     costs = [s/quty for s in costs]
     fontsize=18
+    plt.xticks(fontsize=fontsize)
+    plt.yticks(fontsize=fontsize)
     if "3" in mode:
-        plt.ylabel('Percentage of suites improved by the comparative improvement', fontsize=fontsize)
-        plt.plot([w / 10 for w in weightRange][1:], sizes)
+        plt.ylabel('Percentage of suites improved \nby the comparative improvement', fontsize=fontsize)
+        plt.plot([w / 10 for w in weightRange][1:-1], sizes)
     else:
         if showSize:
             plt.plot([w/10 for w in weightRange], sizes)
@@ -871,7 +880,7 @@ if __name__ == '__main__':
     categories = [[10, 20], [20, 30], [30, 40], [40, 50], [50, 70], [70, 100]]
     #getCTTSPLOTresults([[10, 100]], recompute=False, onlyCIT=True)
     #SPLOTweightsSTD(True)
-    SPLOTweights("1&2&3", threading=False, showSize=True)
+    SPLOTweights("1&2", threading=False, showSize=False)
     # showAllSPLOTModels()
     #SPLOTmodels()
     #SPLOTcreateTable(categories, recompute=False, verbose=False)
