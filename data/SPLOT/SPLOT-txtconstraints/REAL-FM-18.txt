@@ -1,8 +1,0 @@
-~subsystem_pageorsubsystems
-~subsystem_graphorsubsystems
-~source_differenceorversion_mngt
-~perfrm_graphorcobol
-~conditional_perfrm_graphorcobol
-~jcl_graphorjcl
-~staticor~annotation_section
-~staticor~search_page

@@ -1,4 +1,0 @@
-~waterorsprinkler
-~pumpingorsump_pump
-~messageorcommunication
-~floodormoisture_sensr
