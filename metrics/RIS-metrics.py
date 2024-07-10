@@ -1,29 +1,56 @@
 import numpy as np
 from utils.TestSuite import *
 
+def findTransitionInList(transition, listOfTransitions):
+    for t in listOfTransitions:
+        if t[0][0] == transition[0][0] and t[1][0] == transition[1][0]:
+            if (t[0][1] > 0 and transition[0][1] > 0) or (t[0][1] < 0 and transition[0][1] < 0):
+                if (t[1][1] > 0 and transition[1][1] > 0) or (t[1][1] < 0 and transition[1][1] < 0):
+                    return True
+
+        if t[1][0] == transition[0][0] and t[0][0] == transition[1][0]:
+            if (t[1][1] > 0 and transition[0][1] > 0) or (t[1][1] < 0 and transition[0][1] < 0):
+                if (t[0][1] > 0 and transition[1][1] > 0) or (t[0][1] < 0 and transition[1][1] < 0):
+                    return True
+
 
 def howManyForFullCoverage(s, uncovTransitions, mode):
     models = "../data/RIS-FOP/"
     storage = models + "TestSuitesCIT/testSuite-"
     tempUncovTr = uncovTransitions.copy()
     tempChainTests = 0
+    tempCostTests = 0
+    tempSizeTests = 0
     chainTests = []
+    costTests = []
+    sizetests = []
     maxIterations = 10000
     iteration = 0
+    recompute = mode == "Unordered"
     while iteration < maxIterations:
         iteration += 1
-        testSuite = computeCITSuite(storage, iteration, s)
+
+        testSuite = computeCITSuite(storage, iteration, s, recompute=False)
         transitions = testSuite.transitionPairCoverage(mode)
+
         tempChainTests += 1
+        tempCostTests += testSuite.getCost(mode)
+        tempSizeTests += testSuite.getLength()
+        #print(tempUncovTr)
+        #print(transitions)
         for e in tempUncovTr:
-            if e in transitions or (e[1], e[0]) in transitions:
+            if findTransitionInList(e, transitions):
                 tempUncovTr.remove(e)
 
         if len(tempUncovTr) == 0:
             chainTests.append(tempChainTests)
+            costTests.append(tempCostTests)
+            sizetests.append(tempSizeTests)
             tempChainTests = 0
+            tempCostTests = 0
+            tempSizeTests = 0
             tempUncovTr = uncovTransitions.copy()
-    return round(sum(chainTests)/len(chainTests), 2), np.std(chainTests)
+    return round(sum(chainTests)/len(chainTests), 2), np.std(chainTests), round(sum(costTests)/len(costTests), 2), np.std(costTests), round(sum(sizetests)/len(sizetests), 2), np.std(sizetests)
 
 def findSuitableCITsuite(s, errors, search="stats", mode="random", verbose=True):
     models = "../data/RIS-FOP/"
@@ -122,12 +149,24 @@ print("Maximum coverages: " + str(maxis))
 
 chains = []
 chain_std = []
+costs = []
+costs_std = []
+sizes = []
+sizes_std = []
 for mode in modes:
-    chain, std = howManyForFullCoverage(s, allTransitions, mode)
+    chain, chainstd, cost, coststd, size, sizestd = howManyForFullCoverage(s, allTransitions, mode)
     chains.append(chain)
-    chain_std.append(std)
+    chain_std.append(chainstd)
+    costs.append(cost)
+    costs_std.append(coststd)
+    sizes.append(size)
+    sizes_std.append(sizestd)
 print("Average chains to achieve full coverage: " + str(chains))
 print("Std dev to achieve full coverage: " + str(chain_std))
+print("Average cost to achieve full coverage: " + str(costs))
+print("Std dev for cost to achieve full coverage: " + str(costs_std))
+print("Average size to achieve full coverage: " + str(sizes))
+print("Std dev for size to achieve full coverage: " + str(sizes_std))
 
 
 

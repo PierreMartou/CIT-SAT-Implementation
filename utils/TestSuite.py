@@ -214,6 +214,8 @@ class TestSuite:
         transitions = []
         suite = self.suiteRandomOrder
         if mode == "minimized":
+            #if self.suiteMinimized is None:
+            #    self.computeAllRearrangements()
             suite = self.suiteMinimized
         elif mode == "unordered":
             suite = self.suiteUnordered
