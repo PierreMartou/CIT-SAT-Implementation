@@ -11,8 +11,8 @@ if len(sys.argv) < 3:
 if len(sys.argv) < 2:
     print("The arguments with the path to the feature model and the index the test suite are missing.")
 
-featuresFile = "./features.txt" #sys.argv[1]
-index = "0" #sys.argv[2]
+featuresFile = sys.argv[1] #"./features.txt"
+index = sys.argv[2] #"0"
 # featuresFile = "../data/RIS-FOP/" + 'features.txt'
 s = SystemData(featuresFile=featuresFile)
 iteration = ""
