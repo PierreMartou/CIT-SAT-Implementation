@@ -11,10 +11,16 @@ if len(sys.argv) < 3:
 if len(sys.argv) < 2:
     print("The arguments with the path to the feature model and the index the test suite are missing.")
 
-featuresFile = sys.argv[1] #"./features.txt"
-index = sys.argv[2] #"0"
+featuresFile = "./features.txt" #sys.argv[1] #
+index = "0"#sys.argv[2] #
 # featuresFile = "../data/RIS-FOP/" + 'features.txt'
 s = SystemData(featuresFile=featuresFile)
+
+for feature in s.getFeatures():
+    if feature in ["ACTIVATION", "DEACTIVATION", "BREAKPOINT"]:
+        print("!!!!WARNING : reserved keywords are used in the name of features (ACTIVATION, DEACTIVATION, BREAKPOINT). Please modify them to prevent this.")
+
+
 iteration = ""
 print("Step 1/2: Generating test suite")
 
@@ -57,10 +63,10 @@ try:
                 f.write("\nACTIVATION\n")
                 f.write('-'.join([f for f in changes if config[f] > 0]))
                 f.write("\nDEACTIVATION\n")
-                f.write('-'.join([f for f in changes if config[f] > 0]))
+                f.write('-'.join([f for f in changes if config[f] < 0]))
 
                 prevConfig = config
-            f.write("BREAKPOINT")
+            f.write("\nBREAKPOINT")
 
     for f in allFiles:
         f.close()
