@@ -69,12 +69,12 @@ class AlternativePaths:
             #    print("Transition complete before end of test suite is abnormal. Error.")
             #    return None
             if self.verbose:
-                print("\rProgression: ", (i/len(testSuite))*100, "%", flush=True, end='')
+                print("\rProgression: ", round((i/len(testSuite))*100, 2), "%", flush=True, end='')
             newPaths, transitionsToCover, uncoverableTransitions = self.createAlternativePaths(testSuite[i], testSuite[i+1], transitionsToCover, solver)
             allUncoverablesTransitions = allUncoverablesTransitions + uncoverableTransitions
             allPaths.append(newPaths)
         if self.verbose:
-            print("\rProgression: ", 1*100, "%", flush=True)
+            print("\rProgression: ", 100, "%  ", flush=True)
         undetectables = len(allUncoverablesTransitions)/totalTransitions
         self.allResults[tag] = allPaths, undetectables
         return allPaths, undetectables

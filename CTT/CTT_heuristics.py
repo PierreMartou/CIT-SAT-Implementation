@@ -299,11 +299,12 @@ class BuildingCTT:
             dupl1[key] = self.valuesForFactors[key][0]
             dupl2[key] = self.valuesForFactors[key][1]
             return [dupl1, dupl2]
-        print("Progression: 0%", end='')
+        print("Progression: 0%       ", end='')
         while len(self.unCovSets) + len(self.unCovTransitions) > 0 and len(self.coveringArray) <= self.limit:
             if self.verbose:
                 coverage = 100-(len(self.unCovSets) + len(self.unCovTransitions))*100/self.totalNumberOfPairs
-                print("\r(" + str(self.numTests) + ") Current coverage: " + str(coverage) + "%", flush=True, end='')
+                #print("\r(" + str(self.numTests) + ") Current coverage: " + str(coverage) + "%", flush=True, end='')
+                print("\rProgression: "+str(coverage) + "%         ", flush=True, end='')
 
             #self.weight_lookahead = self.base_weight_lookahead
             #if self.prevWasDecidedByLookahead:
@@ -345,7 +346,7 @@ class BuildingCTT:
                 self.coveringArray.append(bestTestCase)
                 self.numTests += 1
         if self.verbose:
-            print("\rProgression: 100 %", flush=True)
+            print("\rProgression: 100 %                ", flush=True)
         return self.coveringArray.copy()
 
     def generateCandidates(self, prevTestCase, candidates):

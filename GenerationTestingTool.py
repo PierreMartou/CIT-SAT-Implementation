@@ -5,14 +5,13 @@ from oracle.AlternativePaths import AlternativePaths, computeAlts
 from utils.SystemData import SystemData
 from utils.TestSuite import computeCTTSuite
 
-if len(sys.argv) < 3:
-    print("An argument with the path to the feature model, or the index of the test suite, is missing.")
+if len(sys.argv) < 4:
+    print("One argument is missing. The first argument should be the features file path, the second the index, and the third the testing tool folder (where to store results).")
 
-if len(sys.argv) < 2:
-    print("The arguments with the path to the feature model and the index the test suite are missing.")
 
-featuresFile = "./features.txt" #sys.argv[1] #
-index = "0"#sys.argv[2] #
+featuresFile = sys.argv[1] #"./features.txt"
+index = sys.argv[2] #"0"
+testingToolFolder = sys.argv[3]
 # featuresFile = "../data/RIS-FOP/" + 'features.txt'
 s = SystemData(featuresFile=featuresFile)
 
@@ -24,10 +23,10 @@ for feature in s.getFeatures():
 iteration = ""
 print("Step 1/2: Generating test suite")
 
-testsuite = computeCTTSuite("./testsuite"+str(index), iteration, s, recompute=True, verbose=True)
+testsuite = computeCTTSuite(testingToolFolder+"testsuite"+str(index), iteration, s, recompute=True, verbose=True)
 
 print("Step 2/2: Generating execution paths")
-paths, undetectables = computeAlts("./paths"+str(index), s, testsuite.getUnorderedTestSuite(), iteration, states=4, recompute=True, verbose=True)
+paths, undetectables = computeAlts(testingToolFolder + "paths"+str(index), s, testsuite.getUnorderedTestSuite(), iteration, states=4, recompute=True, verbose=True)
 
 paths = [[p.getUnorderedTestSuite() for p in path] for path in paths]
 allFiles = []
@@ -41,7 +40,7 @@ for nCurrent in range(len(updatedPaths)):
 
 try:
     for i in range(largestNAlternatives):
-        filePath = "./paths" + str(index) + "-" + str(i) + ".txt"
+        filePath = testingToolFolder + "paths" + str(index) + "-" + str(i) + ".txt"
         f = open(filePath, "w")
         f.write(str(largestNAlternatives)+"\n")
         f.write(str(undetectables) + "% undetectables")
@@ -60,6 +59,8 @@ try:
             prevConfig = parallelPath[0]
             for config in parallelPath[1:]:
                 changes = [f for f in prevConfig if prevConfig[f] != config[f]]
+                if len(changes) == 0:
+                    break
                 f.write("\nACTIVATION\n")
                 f.write('-'.join([f for f in changes if config[f] > 0]))
                 f.write("\nDEACTIVATION\n")
