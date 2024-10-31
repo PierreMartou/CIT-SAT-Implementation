@@ -9,9 +9,9 @@ if len(sys.argv) < 4:
     print("One argument is missing. The first argument should be the features file path, the second the index, and the third the testing tool folder (where to store results).")
 
 
-featuresFile = sys.argv[1] #"./features.txt"
-index = sys.argv[2] #"0"
-testingToolFolder = sys.argv[3]
+featuresFile = sys.argv[1] #"./features.txt" #
+index = sys.argv[2] #"0"#
+testingToolFolder = sys.argv[3] # "./" #
 # featuresFile = "../data/RIS-FOP/" + 'features.txt'
 s = SystemData(featuresFile=featuresFile)
 
@@ -44,6 +44,10 @@ try:
         f = open(filePath, "w")
         f.write(str(largestNAlternatives)+"\n")
         f.write(str(undetectables) + "% undetectables")
+        f.write("\nACTIVATION\n")
+        f.write('-'.join([f for f in originalTestSuite[0] if originalTestSuite[0][f] > 0]))
+        f.write("\nDEACTIVATION\n")
+        f.write('-'.join([f for f in originalTestSuite[0] if originalTestSuite[0][f] < 0]))
         allFiles.append(f)
 
     for step in range(len(updatedPaths)):
