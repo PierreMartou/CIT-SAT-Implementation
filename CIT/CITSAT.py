@@ -2,6 +2,12 @@ import random
 import time
 
 from utils.SATSolver import SATSolver
+
+""" The file CITSAT.py contains all relevant methods to generate a test suite, based on pairwise combinatorial interaction testing, with an instance of SystemData as input.
+
+"""
+
+
 from CIT.TestsEvolution import TestsEvolution
 """A set is under the form ((feature1, _), (feature2, _)).
 orderedSet returns the set with feature1 and feature2 ordered like in the keys of valuesForFactors.
