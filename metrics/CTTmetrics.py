@@ -71,7 +71,7 @@ def RISEvaluation(iterations, mode=None, recompute=False, latex=False, plot=None
         storage = models + "TestSuitesCTT/testSuite" + str(mode) + "-"
 
         for i in range(iterations):
-            testSuite = computeCTTSuite(storage, i, s, interaction_filter=i_filter, weight_lookahead=w_la,
+            testSuite = computeCTTSuite(storage, s, i, interaction_filter=i_filter, weight_lookahead=w_la,
                                         weight_comparative=w_c, recompute=recompute)
             allSize.append(testSuite.getLength())
             allCosts.append(testSuite.getCost())
@@ -177,7 +177,7 @@ def getCITSizeAverage(iterations):
     allSize = []
     storage = models + "TestSuitesCIT/testSuite-"
     for i in range(iterations):
-        testSuite = computeCITSuite(storage, i, s)
+        testSuite = computeCITSuite(storage, s, i)
         allSize.append(testSuite.getLength())
 
     sizeAverage = sum(allSize) / len(allSize)
@@ -259,7 +259,7 @@ def SPLOTimprovements():
                 for iteration in range(max_iterations):
                     tempStorageCTT = storageCTT + filename[:-4] + "-" + mode + "-"
                     i_filter, w_la, w_c = recognizeMode(mode)
-                    testSuite = computeCTTSuite(tempStorageCTT, iteration, s, 30, i_filter, w_la, w_c)
+                    testSuite = computeCTTSuite(tempStorageCTT, s, iteration, 30, i_filter, w_la, w_c)
                     sizeMode.append(testSuite.getLength())
                 sizes[modes.index(mode)] += sum(sizeMode) / max_iterations
                 stds[modes.index(mode)] += np.std(sizeMode)
@@ -291,7 +291,7 @@ def SPLOTgraph():
                 sizesCTT[size] = []
             for iteration in range(max_iterations):
                 tempStorageCIT = storageCIT + filename[:-4] + "-"
-                testSuite = computeCITSuite(tempStorageCIT, iteration, s, recompute=False)
+                testSuite = computeCITSuite(tempStorageCIT, s, iteration, recompute=False)
                 # if testSuite.getLength() >= 20:
                 #    print(filename)
                 sizesCIT[size].append(testSuite.getLength())
@@ -299,7 +299,7 @@ def SPLOTgraph():
                 for mode in modes:
                     tempStorageCTT = storageCTT + filename[:-4] + "-" + mode + "-"
                     i_filter, w_la, w_c = recognizeMode(mode)
-                    testSuite = computeCTTSuite(tempStorageCTT, iteration, s, 30, i_filter, w_la, w_c, recompute=False)
+                    testSuite = computeCTTSuite(tempStorageCTT, s, iteration, 30, i_filter, w_la, w_c, recompute=False)
                     sizesCTT[size].append(testSuite.getLength())
     x = list(sizesCIT.keys())
     x.sort()
@@ -391,7 +391,9 @@ def SPLOTweights(mode, showSize=False, iteration=0, recompute=False, threading=F
                             future = executor.submit(computeCTTSuite, tempStorageCTT, iteration, sT2, interaction_filter=i_filter, weight_lookahead=w_la, weight_comparative=w_c, recompute=recompute)
                             tempThreadsList.append(future)
                         else:
-                            suites.append(computeCTTSuite(tempStorageCTT, iteration, sT2, interaction_filter=i_filter, weight_lookahead=w_la, weight_comparative=w_c, recompute=recompute))
+                            suites.append(computeCTTSuite(tempStorageCTT, sT2, iteration, interaction_filter=i_filter,
+                                                          weight_lookahead=w_la, weight_comparative=w_c,
+                                                          recompute=recompute))
                             tempThreadsList.append(0)
 
                     for i in range(len(tempThreadsList)):
@@ -481,7 +483,8 @@ def getSPLOTsuites(rangeCategory, modes, max_iterations=3, verbose=False, specif
                             future = executor.submit(computeCITSuite, tempStorageCIT, iteration, sT, candidates,recompute=recompute)
                             threadsCIT.append(future)
                         else:
-                            fileCITsuites.append(computeCITSuite(tempStorageCIT, iteration, s, candidates, recompute=recompute))
+                            fileCITsuites.append(
+                                computeCITSuite(tempStorageCIT, s, iteration, candidates, recompute=recompute))
 
                         tempThreadsList = []
                         tempSuiteList = []
@@ -501,7 +504,7 @@ def getSPLOTsuites(rangeCategory, modes, max_iterations=3, verbose=False, specif
                                 tempThreadsList.append(future)
                             else:
                                 tempSuiteList.append(
-                                    computeCTTSuite(tempStorageCTT, iteration, s, candidates=candidates,
+                                    computeCTTSuite(tempStorageCTT, s, iteration, candidates=candidates,
                                                     interaction_filter=i_filter, weight_lookahead=w_la,
                                                     weight_comparative=w_c, recompute=recompute, limit=templimit))
                         if threading:
@@ -652,7 +655,8 @@ def SPLOTresults(rangeCategory, recompute=False, computeMetrics=True, latex=Fals
                                                      recompute=recomputeCIT)
                             threadsCIT.append(future)
                         else:
-                            allCITsuites.append(computeCITSuite(tempStorageCIT, iteration, s, candidates, recompute=recomputeCIT))
+                            allCITsuites.append(
+                                computeCITSuite(tempStorageCIT, s, iteration, candidates, recompute=recomputeCIT))
                         # print("Number of SAT calls for CIT : " + str(SATSolver.getCount()))
 
                         tempThreadsList = []
@@ -677,9 +681,10 @@ def SPLOTresults(rangeCategory, recompute=False, computeMetrics=True, latex=Fals
                                                     weight_comparative=w_c, recompute=recompute, limit=templimit)
                                 tempThreadsList.append(future)
                             else:
-                                tempSuiteList.append(computeCTTSuite(tempStorageCTT, iteration, s, candidates=candidates,
-                                                        interaction_filter=i_filter, weight_lookahead=w_la,
-                                                        weight_comparative=w_c, recompute=recompute, limit=templimit))
+                                tempSuiteList.append(
+                                    computeCTTSuite(tempStorageCTT, s, iteration, candidates=candidates,
+                                                    interaction_filter=i_filter, weight_lookahead=w_la,
+                                                    weight_comparative=w_c, recompute=recompute, limit=templimit))
                         if threading:
                             for m in range(len(modes)):
                                 threadsCTT[m].append(tempThreadsList[m])
@@ -824,7 +829,7 @@ def findBestWeights(look_ahead=True):
                 w_a = v
             else:
                 w_c = v
-            testSuite = computeCTTSuite(storage, i, s, 30, interaction_filter=i_filter, weight_lookahead=w_a,
+            testSuite = computeCTTSuite(storage, s, i, 30, interaction_filter=i_filter, weight_lookahead=w_a,
                                         weight_comparative=w_c, recompute=True)
             allSize.append(testSuite.getLength())
         sizes.append(sum(allSize) / len(allSize))

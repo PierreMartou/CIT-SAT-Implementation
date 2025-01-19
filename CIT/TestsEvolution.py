@@ -1,6 +1,6 @@
 import random
 from utils.SATSolver import SATSolver
-from utils.ResultRefining import orderArray
+from utils.PrintUtilities import orderArray
 
 class TestsEvolution:
     def __init__(self, testFile, systemData, mode):

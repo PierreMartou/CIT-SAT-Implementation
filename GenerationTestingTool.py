@@ -23,7 +23,7 @@ for feature in s.getFeatures():
 iteration = ""
 print("Step 1/2: Generating test suite")
 
-testsuite = computeCTTSuite(testingToolFolder+"testsuite"+str(index), iteration, s, recompute=True, verbose=True)
+testsuite = computeCTTSuite(testingToolFolder + "testsuite" + str(index), s, iteration, recompute=True, verbose=True)
 
 print("Step 2/2: Generating execution paths")
 paths, undetectables = computeAlts(testingToolFolder + "paths"+str(index), s, testsuite.getUnorderedTestSuite(), iteration, states=4, recompute=True, verbose=True)

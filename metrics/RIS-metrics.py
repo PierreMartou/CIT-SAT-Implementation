@@ -30,7 +30,7 @@ def howManyForFullCoverage(s, uncovTransitions, mode):
     while iteration < maxIterations:
         iteration += 1
 
-        testSuite = computeCITSuite(storage, iteration, s, recompute=False)
+        testSuite = computeCITSuite(storage, s, iteration, recompute=False)
         transitions = testSuite.transitionPairCoverage(mode)
 
         tempChainTests += 1
@@ -62,7 +62,7 @@ def findSuitableCITsuite(s, errors, search="stats", mode="random", verbose=True)
     iteration = 0
     while iteration < maxIterations:
         iteration += 1
-        testSuite = computeCITSuite(storage, iteration, s)
+        testSuite = computeCITSuite(storage, s, iteration)
         transitions = testSuite.transitionPairCoverage(mode)
 
         errorFound = float(len(errors))

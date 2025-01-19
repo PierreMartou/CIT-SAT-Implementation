@@ -1,6 +1,6 @@
 import time
 from CIT.CITSAT import CITSAT
-from utils.ResultRefining import printCoveringArray, numberOfChangements, orderArray
+from utils.PrintUtilities import printCoveringArray, numberOfChangements, orderArray
 from utils.SystemData import SystemData
 
 time1 = time.time()

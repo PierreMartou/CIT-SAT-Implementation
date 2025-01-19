@@ -43,7 +43,7 @@ def RISpath():
     storage = models + "TestSuitesCTT/"
     altsStorage = models + "AlternativePaths/alts"
     iteration = 1
-    testsuite = computeCTTSuite(storage, iteration, s, recompute=False, verbose=True)
+    testsuite = computeCTTSuite(storage, s, iteration, recompute=False, verbose=True)
     testsuite.printLatexTransitionForm()
     paths, undetectables = computeAlts(altsStorage, s, testsuite.getUnorderedTestSuite(), iteration, states=4, recompute=False)
     printOriginalVsAlterativePaths(testsuite, paths)
@@ -63,7 +63,7 @@ def debugging(filename, iteration=0):
     storageAlts = "../data/SPLOT/SPLOT-NEW/SPLOT-Alts/"
     s = SystemData(featuresFile=models+"SPLOT-txt/"+filename, extraConstraints=models+"SPLOT-txtconstraints/"+filename)
     storage = models + "SPLOT-TestSuitesCTT/" + filename[:-4] + "-1&2&3-"
-    testsuite = computeCTTSuite(storage, iteration, s, recompute=False, verbose=True)
+    testsuite = computeCTTSuite(storage, s, iteration, recompute=False, verbose=True)
     #testsuite.printLatexTransitionForm()
     #print(testsuite.interactionTransitionCoverageEvolution())
     suite = testsuite.getUnorderedTestSuite()
@@ -123,7 +123,7 @@ def oracleSPLOTmetrics(rangeCategory, states=None, recompute=False, verbose=Fals
             tempStorageCTT = storageCTT + filename[:-4] + "-1&2&3-"
             for iteration in range(max_iterations):
                 print("\rComputing model " + str(quty) + "/" + str(total), iteration+1, "/", max_iterations, " (category: " + str(rangeCategory) + "), model " + str(filename), flush=True, end='')
-                computedSuite = computeCTTSuite(tempStorageCTT, iteration, s, recompute=False)
+                computedSuite = computeCTTSuite(tempStorageCTT, s, iteration, recompute=False)
                 size = len(s.getFeatures())
                 if size in sizesCTT:
                     sizesCTT[size].append(computedSuite.getLength())

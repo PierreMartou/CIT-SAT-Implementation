@@ -1,5 +1,5 @@
 from CIT.CITSAT import CITSAT
-from utils.ResultRefining import printCoveringArray, numberOfChangements, orderArray, addedCreationCost
+from utils.PrintUtilities import printCoveringArray, numberOfChangements, orderArray, addedCreationCost
 from utils.SystemData import SystemData
 import time
 from pysat.solvers import Glucose3

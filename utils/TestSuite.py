@@ -4,28 +4,33 @@ import time
 from random import randrange
 from CIT.CITSAT import CITSAT
 from CIT.RandomSampling import randomSampling, computeCoverage, invalidChance
-from utils.ResultRefining import printCoveringArray, numberOfChangements
+from utils.PrintUtilities import printCoveringArray, numberOfChangements
 from utils.SystemData import SystemData
 from utils.SATSolver import SATSolver
 from CTT.CTT_heuristics import BuildingCTT
 
-def computeCITSuite(fpath, iteration, s, candidates=30, recompute=False):
+def computeCITSuite(fpath, s, iteration=0, candidates=30, recompute=False):
     filepath = fpath + str(iteration)+".pkl"
     if os.path.exists(filepath) and not recompute:
         testSuite = readSuite(filepath)
+    if not isinstance(s, SystemData):
+        s = SystemData(featuresFile=s)
     else:
         testSuite = TestSuite(s, CITSAT(s, False, candidates), computeRearrangements=True)
         storeSuite(testSuite, filepath)
     return testSuite
 
 
-def computeCTTSuite(fpath, iteration, s, candidates=20, interaction_filter=True, weight_lookahead=0.7, weight_comparative=0.3, recompute=False, limit=1000, verbose=False):
+def computeCTTSuite(fpath, s, iteration, candidates=20, interaction_filter=True, weight_lookahead=0.7,
+                    weight_comparative=0.3, recompute=False, limit=1000, verbose=False):
     version = "1.0.1"
     filepath = fpath + str(iteration)+".pkl"
     if os.path.exists(filepath) and not recompute:
         testSuite = readSuite(filepath)
         if testSuite.isUpToDate(version):
             return testSuite
+    if not isinstance(s, SystemData):
+        s = SystemData(featuresFile=s)
     t = BuildingCTT(s, verbose=verbose, numCandidates=candidates, interaction_filter=interaction_filter, weight_lookahead=weight_lookahead, weight_comparative=weight_comparative, limit=limit)
     testSuite = TestSuite(s, t.getCoveringArray(), limit=limit, version=version)
     #if weight_lookahead>0 and len(testSuite.getUnorderedTestSuite())>99:
@@ -483,9 +488,13 @@ class TestSuite:
         return self.suiteMinimized
 
     def getMaxTestSuite(self):
+        if self.suiteMaximized is None:
+            self.computeAllRearrangements()
         return self.suiteMaximized
 
     def getRandomTestSuite(self):
+        if self.suiteRandomOrder is None:
+            self.computeAllRearrangements()
         return self.suiteRandomOrder
 
     def getUnorderedTestSuite(self):
