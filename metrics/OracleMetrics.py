@@ -1,5 +1,5 @@
 from utils.TestSuite import *
-from oracle.AlternativePaths import computeAlts
+from TestOracle.AlternativePaths import computeAlts
 from CTTmetrics import getNumberOfSPLOTModels, smoothLinearApprox, computeCorrelation
 import matplotlib.pyplot as plt
 

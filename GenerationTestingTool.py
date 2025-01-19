@@ -1,7 +1,7 @@
 # Reads "features.txt" in argument / creates execution paths
 import sys
 from utils import TestSuite
-from oracle.AlternativePaths import AlternativePaths, computeAlts
+from TestOracle.AlternativePaths import AlternativePaths, computeAlts
 from utils.SystemData import SystemData
 from utils.TestSuite import computeCTTSuite
 

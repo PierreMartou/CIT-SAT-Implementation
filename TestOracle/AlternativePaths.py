@@ -1,4 +1,4 @@
-from oracle.OracleSolver import OracleSolver
+from TestOracle.OracleSolver import OracleSolver
 
 from utils.TestSuite import allTransitions
 import pickle

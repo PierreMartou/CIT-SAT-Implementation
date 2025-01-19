@@ -3,7 +3,7 @@ from utils.PrintUtilities import printCoveringArray, numberOfChangements, orderA
 from utils.SystemData import SystemData
 import time
 from pysat.solvers import Glucose3
-from CIT.TestsEvolution import TestsEvolution
+from CIT.TestsAugmentation import TestsEvolution
 from utils.SATSolver import SATSolver
 import math
 import numpy as np
