@@ -15,9 +15,9 @@ def computeCITSuite(fpath, s, iteration=0, candidates=30, recompute=False):
         testSuite = readSuite(filepath)
     if not isinstance(s, SystemData):
         s = SystemData(featuresFile=s)
-    else:
-        testSuite = TestSuite(s, CITSAT(s, False, candidates), computeRearrangements=True)
-        storeSuite(testSuite, filepath)
+
+    testSuite = TestSuite(s, CITSAT(s, False, candidates), computeRearrangements=True)
+    storeSuite(testSuite, filepath)
     return testSuite
 
 
