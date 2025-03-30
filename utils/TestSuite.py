@@ -13,6 +13,7 @@ def computeCITSuite(fpath, s, iteration=0, candidates=30, recompute=False):
     filepath = fpath + str(iteration)+".pkl"
     if os.path.exists(filepath) and not recompute:
         testSuite = readSuite(filepath)
+        return testSuite
     if not isinstance(s, SystemData):
         s = SystemData(featuresFile=s)
 

@@ -1,5 +1,5 @@
 from TestOracle.OracleSolver import OracleSolver
-
+from utils.SystemData import SystemData
 from utils.TestSuite import allTransitions
 import pickle
 import os
@@ -7,6 +7,10 @@ import os
 def computeAlts(fpath, s, testSuite, tag=0, states=4, recompute=False, verbose=False):
     version = "1.0.2"
     filepath = fpath + "-" + str(states) + ".pkl"
+
+    if not isinstance(s, SystemData):
+        s = SystemData(featuresFile=s)
+
     if os.path.exists(filepath) and not recompute:
         alts = readAlts(filepath)
         if not alts.isUpToDate(version):
