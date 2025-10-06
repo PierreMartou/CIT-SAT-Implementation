@@ -6,6 +6,12 @@ import matplotlib.pyplot as plt
 from TestOracle.TestOracleExecutioner.TestController import EmergencyController
 from TestOracle.TestOracleExecutioner.TestOracleExecution import TestingToolRunner
 
+controller = EmergencyController()
+reference = 0
+skip_generation = False
+TestingToolRunner.launch_test_oracle(controller, "./", "./features.txt", skip_generation, reference)
+
+
 """models = "../data/RIS-FOP/"
 features = models + 'features.txt'
 suite_storage = models + "TestSuitesCTT/"
@@ -24,7 +30,3 @@ print("number of groups of paths is", len(paths), ", average number of paths is"
       "their length is on average ", averageLength, "their cost is on average", averageCost)
 print("total number of states is", totalStates, "total cost is", totalCost)"""
 
-controller = EmergencyController()
-reference = 0
-skip_generation = False
-TestingToolRunner.launch_test_oracle(controller, "./", "./features.txt", skip_generation, reference)

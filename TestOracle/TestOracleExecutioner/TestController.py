@@ -9,9 +9,6 @@ class EmergencyController(ControllerInterface):
         self.features = {"High", "Low"}
 
     def activate(self, deactivations: List[str], activations: List[str]) -> int:
-        # Validate input
-        if not all(feature in self.features for feature in deactivations + activations):
-            return -1  # Invalid feature name
 
         # Process deactivations first
         for feature in deactivations:
