@@ -51,7 +51,7 @@ class OracleSolver:
             else:
                 dummyCount += 1
         if dummyCount > 1:
-            print("multiple dummies")
+            print("error in oracle solver: multiple dummies found")
         for constraint in self.s.getConstraints():
             helper = switcher.get(constraint[0].lower(), lambda: print("Invalid constraint."))
             newClauses = helper(self.s.toIndex(constraint[1]), self.s.toIndex(constraint[2]))

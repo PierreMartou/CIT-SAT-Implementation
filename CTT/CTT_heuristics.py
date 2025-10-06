@@ -2,7 +2,7 @@ from utils.SATSolver import SATSolver
 import random
 
 class BuildingCTT:
-    def __init__(self, systemData, verbose=False, numCandidates=30, interaction_filter=True, weight_lookahead=0.5, weight_comparative=0.3, limit=1000):
+    def __init__(self, systemData, verbose=False, numCandidates=30, interaction_filter=True, weight_lookahead=0.5, weight_comparative=0.3, limit=1000, specificTransitionCoverage=None):
         self.verbose = verbose
         self.limit = limit
         self.stopgapmeasure = False
@@ -23,7 +23,11 @@ class BuildingCTT:
 
         self.coveringArray = []
         self.numTests = 0
-        self.unCovSets, self.unCovTransitions, self.unCovPairsCount = self.computeSetToCover()
+        if not specificTransitionCoverage:
+            self.unCovSets, self.unCovTransitions, self.unCovPairsCount = self.computeSetToCover()
+        else:
+            self.unCovSets = []
+            self.unCovTransitions, self.unCovPairsCount = self.computeSpecificSetToCover(specificTransitionCoverage)
         if verbose:
             print("Number of uncovered interactions and transitions : " + str(len(self.unCovSets)) + " - " + str(len(self.unCovTransitions)))
         self.totalNumberOfPairs = len(self.unCovSets) + len(self.unCovTransitions)
@@ -287,6 +291,38 @@ class BuildingCTT:
                             else:
                                 print("DID NOT RECOGNIZE HEURISTICS IN COMPUTESETTOCOVER.")
         return unCovSets, unCovTransitions, unCovPairsCount
+
+
+    def computeSpecificSetToCover(self, specificTransitionCoverage):
+        unCovTransitions = []
+        unCovPairsCount = {}
+
+        for transition in specificTransitionCoverage:
+            # it's in the form : "(+A, -B)"
+            f1 = transition[0]
+            f2 = transition[1]
+
+            pair1 = (f1[1:], abs(self.valuesForFactors[f1[1:]][0]) if f1[:1] == '+' else -self.valuesForFactors[f1[1:]][0])
+            pair2 = (f2[1:], abs(self.valuesForFactors[f2[1:]][0]) if f2[:1] == '+' else -self.valuesForFactors[f2[1:]][0])
+
+            # could skip this checkSAT since it's a verified suspect.
+            if self.solver.checkSAT([pair1[1], pair2[1]]):
+                if pair1 not in unCovPairsCount:
+                    unCovPairsCount[pair1] = 1
+                else:
+                    unCovPairsCount[pair1] += 1
+                if pair2 not in unCovPairsCount:
+                    unCovPairsCount[pair2] = 1
+                else:
+                    unCovPairsCount[pair2] += 1
+
+                if self.solver.checkSAT([-1*pair1[1], -1*pair2[1]]):
+                    unCovTransitions.append([pair1, pair2])
+                else:
+                    print("ERROR: A transition in the specific transition coverage is not valid !")
+            else:
+                print("DID NOT RECOGNIZE HEURISTICS IN COMPUTESETTOCOVER.")
+        return unCovTransitions, unCovPairsCount
 
     def getCoveringArray(self):
         if len(self.valuesForFactors) == 0:

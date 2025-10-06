@@ -22,8 +22,8 @@ def computeCITSuite(fpath, s, iteration=0, candidates=30, recompute=False):
     return testSuite
 
 
-def computeCTTSuite(fpath, s, iteration, candidates=20, interaction_filter=True, weight_lookahead=0.7,
-                    weight_comparative=0.3, recompute=False, limit=1000, verbose=False):
+def computeCTTSuite(fpath, s, iteration, candidates=20, interaction_filter=True, weight_lookahead=0.5,
+                    weight_comparative=0.3, recompute=False, limit=1000, verbose=False, specificTransitionCoverage=None):
     version = "1.0.1"
     filepath = fpath + str(iteration)+".pkl"
     if os.path.exists(filepath) and not recompute:
@@ -32,7 +32,7 @@ def computeCTTSuite(fpath, s, iteration, candidates=20, interaction_filter=True,
             return testSuite
     if not isinstance(s, SystemData):
         s = SystemData(featuresFile=s)
-    t = BuildingCTT(s, verbose=verbose, numCandidates=candidates, interaction_filter=interaction_filter, weight_lookahead=weight_lookahead, weight_comparative=weight_comparative, limit=limit)
+    t = BuildingCTT(s, verbose=verbose, numCandidates=candidates, interaction_filter=interaction_filter, weight_lookahead=weight_lookahead, weight_comparative=weight_comparative, limit=limit, specificTransitionCoverage=specificTransitionCoverage)
     testSuite = TestSuite(s, t.getCoveringArray(), limit=limit, version=version)
     #if weight_lookahead>0 and len(testSuite.getUnorderedTestSuite())>99:
     #    print("lookahead failed")
