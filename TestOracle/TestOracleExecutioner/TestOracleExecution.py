@@ -167,11 +167,17 @@ class TestingToolRunner:
 
                 if step_counter == int(step):
                     activation_line = lines[i+1].strip()
-                    activations = activation_line.split("-")
+                    if activation_line:
+                        activations = activation_line.split("-")
+                    else:
+                        activations = []
                     if lines[i+2].strip() != "DEACTIVATION":
                         print("Irregular pattern detected.")
                     deactivation_line = lines[i+3].strip()
-                    deactivations = deactivation_line.split("-")
+                    if deactivation_line:
+                        deactivations = deactivation_line.split("-")
+                    else:
+                        deactivations = []
                     return [activations, deactivations]
 
                 if "BREAKPOINT" in line:
@@ -181,8 +187,9 @@ class TestingToolRunner:
             return None
         return None
 
+    # if not verbose, returns : step at which there is an inconsistency, the alternative path number, the original logs, the alternative logs
     @staticmethod
-    def verify_logs(testing_tool_folder, reference, number_paths):
+    def verify_logs(testing_tool_folder, reference, number_paths, verbose=False):
         discrepancies = []
 
         all_logs = []
@@ -196,18 +203,21 @@ class TestingToolRunner:
             for j in range(1, len(logs_at_current_step)):
                 alt_logs = logs_at_current_step[j]
                 if TestingToolRunner.compare_logs(original_logs, alt_logs):
-                    discrepancy = f"==================================================\nReference {reference}, at configuration {i}, between path 0 and alternative path {j}, logs are inconsistent.\n"
-                    discrepancy += f"\nThe transitions were : "
-                    erroneousFeatures = TestingToolRunner.activations_at_specific_step(str(i), testing_tool_folder + "paths0-0.txt")
+                    if verbose:
+                        discrepancy = f"==================================================\nReference {reference}, at configuration {i}, between path 0 and alternative path {j}, logs are inconsistent.\n"
+                        discrepancy += f"\nThe transitions were : "
+                        erroneousFeatures = TestingToolRunner.activations_at_specific_step(str(i), testing_tool_folder + "paths0-0.txt")
 
-                    #feature_filter = ["High", "Low"]
-                    #erroneousFeatures = ["-"+erroneousFeatures[0][i] for i in range(len(erroneousFeatures[0])) if erroneousFeatures[0][i] in feature_filter] + ["+" + erroneousFeatures[1][i] for i in range(len(erroneousFeatures[1])) if erroneousFeatures[1][i] in feature_filter]
+                        #feature_filter = ["High", "Low"]
+                        #erroneousFeatures = ["-"+erroneousFeatures[0][i] for i in range(len(erroneousFeatures[0])) if erroneousFeatures[0][i] in feature_filter] + ["+" + erroneousFeatures[1][i] for i in range(len(erroneousFeatures[1])) if erroneousFeatures[1][i] in feature_filter]
 
-                    erroneousFeatures = ["-"+erroneousFeatures[1][i] for i in range(len(erroneousFeatures[1]))] + ["+" + erroneousFeatures[0][i] for i in range(len(erroneousFeatures[0]))]
-                    discrepancy += str(erroneousFeatures)
-                    discrepancy += f"\nOriginal logs: {original_logs} \nVS alternative logs: {alt_logs}\n"
-                    discrepancies.append(discrepancy)
-        if not discrepancies:
+                        erroneousFeatures = ["-"+erroneousFeatures[1][i] for i in range(len(erroneousFeatures[1]))] + ["+" + erroneousFeatures[0][i] for i in range(len(erroneousFeatures[0]))]
+                        discrepancy += str(erroneousFeatures)
+                        discrepancy += f"\nOriginal logs: {original_logs} \nVS alternative logs: {alt_logs}\n"
+                        discrepancies.append(discrepancy)
+                    else:
+                        discrepancies.append((i, j, original_logs, alt_logs))
+        if not discrepancies and verbose:
             discrepancies.append("All logs are consistent between alternative execution paths. Congratulations.")
         return discrepancies
 
@@ -274,7 +284,8 @@ class TestingToolRunner:
 
         print("Success of the execution. The obtained logs will now be compared for consistency.")
         discrepancies = TestingToolRunner.verify_logs(testing_tool_folder, reference, number_of_paths)
-        for line in discrepancies:
-            print(line)
+        #for line in discrepancies:
+        #    print(line)
+        return discrepancies
 
 

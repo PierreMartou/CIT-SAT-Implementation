@@ -7,7 +7,7 @@ ENDSTATE (Test 1)
 Emergency level: 2
 LINEMARKER
 ENDSTATE (Test 2)
-Emergency level: 1
+Emergency level: 0
 LINEMARKER
 ENDSTATE (Test 3)
 Emergency level: 0
@@ -19,7 +19,7 @@ ENDSTATE (Test 5)
 Emergency level: 0
 LINEMARKER
 ENDSTATE (Test 6)
-Emergency level: 2
+Emergency level: 1
 LINEMARKER
 ENDSTATE (Test 7)
 Emergency level: 2

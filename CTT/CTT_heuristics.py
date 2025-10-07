@@ -42,18 +42,25 @@ class BuildingCTT:
                 tempUnCovPairsCnt[transition[0]] = tempUnCovPairsCnt[transition[0]] - 1
                 tempUnCovPairsCnt[transition[1]] = tempUnCovPairsCnt[transition[1]] - 1
 
-                if prevTestCase is not None:
-                    oppositePair = (transition[0][0], -1*transition[0][1])
-                    tempUnCovPairsCnt[oppositePair] = tempUnCovPairsCnt[oppositePair] + self.weight_lookahead
-                    oppositePair = (transition[1][0], -1*transition[1][1])
-                    tempUnCovPairsCnt[oppositePair] = tempUnCovPairsCnt[oppositePair] + self.weight_lookahead
+                #WARNING CHANGE REVIEW
+                #if prevTestCase is not None:
+                opposite_pair = (transition[0][0], -1*transition[0][1])
+                if opposite_pair in tempUnCovPairsCnt:
+                    tempUnCovPairsCnt[opposite_pair] = tempUnCovPairsCnt[opposite_pair] + self.weight_lookahead
+                else:
+                    tempUnCovPairsCnt[opposite_pair] = self.weight_lookahead
+                opposite_pair = (transition[1][0], -1*transition[1][1])
+                if opposite_pair in tempUnCovPairsCnt:
+                    tempUnCovPairsCnt[opposite_pair] = tempUnCovPairsCnt[opposite_pair] + self.weight_lookahead
+                else:
+                    tempUnCovPairsCnt[opposite_pair] = self.weight_lookahead
                 # Following is not logical.
                 """if prevTestCase is not None and transition[0][1] == prevTestCase[transition[0][0]]:
-                    oppositePair = (transition[0][0], -1*transition[0][1])
-                    tempUnCovPairsCnt[oppositePair] = tempUnCovPairsCnt[oppositePair] + self.lookahead_weight
+                    opposite_pair = (transition[0][0], -1*transition[0][1])
+                    tempUnCovPairsCnt[opposite_pair] = tempUnCovPairsCnt[opposite_pair] + self.lookahead_weight
                 if prevTestCase is not None and transition[1][1] == prevTestCase[transition[1][0]]:
-                    oppositePair = (transition[1][0], -1*transition[1][1])
-                    tempUnCovPairsCnt[oppositePair] = tempUnCovPairsCnt[oppositePair] + self.lookahead_weight"""
+                    opposite_pair = (transition[1][0], -1*transition[1][1])
+                    tempUnCovPairsCnt[opposite_pair] = tempUnCovPairsCnt[opposite_pair] + self.lookahead_weight"""
 
         # INTERACTIONFILTER IS ALREADY COMPUTED WHEN COMPUTING SET TO COVER.
 
@@ -61,7 +68,10 @@ class BuildingCTT:
         reTempUnCovPairsCnt = {}
         for pair in tempUnCovPairsCnt:
             #tempUnCovPairsCnt[pair] = tempUnCovPairsCnt[pair] - self.weight_comparative*tempUnCovPairsCnt[(pair[0], -pair[1])]
-            reTempUnCovPairsCnt[pair] = tempUnCovPairsCnt[pair] - self.weight_comparative*tempUnCovPairsCnt[(pair[0], -pair[1])]
+            if (pair[0], -pair[1]) in tempUnCovPairsCnt:
+                reTempUnCovPairsCnt[pair] = tempUnCovPairsCnt[pair] - self.weight_comparative*tempUnCovPairsCnt[(pair[0], -pair[1])]
+            else:
+                reTempUnCovPairsCnt[pair] = tempUnCovPairsCnt[pair]
 
         return reTempUnCovPairsCnt
 
@@ -301,7 +311,6 @@ class BuildingCTT:
             # it's in the form : "(+A, -B)"
             f1 = transition[0]
             f2 = transition[1]
-
             pair1 = (f1[1:], abs(self.valuesForFactors[f1[1:]][0]) if f1[:1] == '+' else -self.valuesForFactors[f1[1:]][0])
             pair2 = (f2[1:], abs(self.valuesForFactors[f2[1:]][0]) if f2[:1] == '+' else -self.valuesForFactors[f2[1:]][0])
 
@@ -322,6 +331,8 @@ class BuildingCTT:
                     print("ERROR: A transition in the specific transition coverage is not valid !")
             else:
                 print("DID NOT RECOGNIZE HEURISTICS IN COMPUTESETTOCOVER.")
+        if len(specificTransitionCoverage) == 1:
+            print(unCovTransitions, unCovPairsCount)
         return unCovTransitions, unCovPairsCount
 
     def getCoveringArray(self):

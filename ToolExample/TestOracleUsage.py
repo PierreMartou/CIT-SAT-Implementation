@@ -3,14 +3,19 @@ from TestOracle.AlternativePaths import computeAlts
 from metrics.CTTmetrics import getNumberOfSPLOTModels, smoothLinearApprox, computeCorrelation
 import matplotlib.pyplot as plt
 
+from ErrorIsolation.ErrorIsolation import *
 from TestOracle.TestOracleExecutioner.TestController import EmergencyController
 from TestOracle.TestOracleExecutioner.TestOracleExecution import TestingToolRunner
 
 controller = EmergencyController()
 reference = 0
 skip_generation = False
-TestingToolRunner.launch_test_oracle(controller, "./", "./features.txt", skip_generation, reference)
+testing_tool_folder = "./"
+feature_model_path = "./features.txt"
+discrepancies = TestingToolRunner.launch_test_oracle(controller, testing_tool_folder, feature_model_path, skip_generation, reference)
+discr = discrepancies[0]
 
+error_isolation(controller, testing_tool_folder, feature_model_path, discr[1], reference, discr[0])
 
 """models = "../data/RIS-FOP/"
 features = models + 'features.txt'
