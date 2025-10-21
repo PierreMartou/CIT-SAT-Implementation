@@ -14,7 +14,7 @@ testing_tool_folder = "./"
 feature_model_path = "./features.txt"
 discrepancies = TestingToolRunner.launch_test_oracle(controller, testing_tool_folder, feature_model_path, skip_generation, reference)
 discr = discrepancies[0]
-
+print(discr)
 error_isolation(controller, testing_tool_folder, feature_model_path, discr[1], reference, discr[0])
 
 """models = "../data/RIS-FOP/"

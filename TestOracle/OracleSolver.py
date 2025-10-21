@@ -122,17 +122,34 @@ class OracleSolver:
                 self.solver.add(Not(featureStates[f]))
                 #self.solver.assert_exprs(Not(featureStates[f]))
 
-    def createPath(self, initState, finalState, forbiddenTransitions, satisOnly=False):
+    def createPath(self, initConfig, finalConfig, forbiddenTransitions, satisOnly=False, mandatoryTransitions = None, startupConfig=None):
         self.solver.pop()
         self.solver.push()
-        # add initial state
-        self.setState(self.startFeatures, initState)
+        # add initial configuration to constraints
+        if initConfig:
+            self.setState(self.startFeatures, initConfig)
 
-        # add final state
-        self.setState(self.finalFeatures, finalState)
+        # add final configuration to constraints
+        if finalConfig:
+            self.setState(self.finalFeatures, finalConfig)
 
-        #add contraints on transitions
+        # add contraints on transitions
         self.forbidAllTransitions(forbiddenTransitions)
+
+        # if there is a startup configuration, we must forbid transitions from this configuration to initial configuration.
+        if startupConfig:
+            startupState = {}
+            for f in startupConfig:
+                startupState[f] = Bool(self.featureID(f, "startup"))
+
+            self.setState(startupState, startupConfig)
+
+            for transition in forbiddenTransitions:
+                self.forbidTransition(transition, startupState, self.startFeatures)
+
+        #need specific transitions to exist
+        if mandatoryTransitions:
+            self.mustHaveTransitions(mandatoryTransitions)
 
         self.solver.minimize(self.objective)
         satModel = self.solver.check()
@@ -145,19 +162,31 @@ class OracleSolver:
 
         values = self.solver.model()
         states = [{} for i in range(len(self.featuresInStates))]
+        new_init_config = {}
+        new_final_config = {}
         for solverFeature in values:
             spl = str(solverFeature).split("#")
             #print(spl)
             if len(spl) == 2:
                 feature, state = spl
                 #print(feature, state, values[solverFeature])
-                if state not in ["start", "final"] and feature not in ["EqualStateVariable"]:
+                if state not in ["start", "final", "startup"] and feature not in ["EqualStateVariable"]:
                     state = int(state)
-                    if values[solverFeature] == True:
-                        states[state][feature] = self.s.toIndex(feature)
-                    else:
-                        states[state][feature] = -self.s.toIndex(feature)
-        return TestSuite(self.s, [initState] + states + [finalState])
+                    states[state][feature] = self.s.toIndex(feature) if values[solverFeature] else -self.s.toIndex(feature)
+
+                if state == "start" and initConfig is None:
+                    new_init_config[feature] = self.s.toIndex(feature) if values[solverFeature] else -self.s.toIndex(feature)
+
+                if state == "final" and finalConfig is None:
+                    new_final_config[feature] = self.s.toIndex(feature) if values[solverFeature] else -self.s.toIndex(feature)
+
+        if initConfig is None:
+            initConfig = new_init_config
+
+        if finalConfig is None:
+            finalConfig = new_final_config
+
+        return TestSuite(self.s, [initConfig] + states + [finalConfig])
 
     def forbidAllTransitions(self, forbiddenTransitions):
         sequenceOfStates = [self.startFeatures] + self.featuresInStates + [self.finalFeatures]
@@ -199,3 +228,24 @@ class OracleSolver:
             return False
         else:
             return True
+
+    # Accepts transition in the form "+a, +b"
+    def mustHaveTransitions(self, mandatoryTransitions):
+        states = ['start'] + [i for i in range(len(self.featuresInStates))] + ['final']
+        for transition in mandatoryTransitions:
+            transitionClause = []
+            for i in range(len(states)-1):
+                stateClause = []
+                currentState = self.allFeatures[states[i]]
+                futureState = self.allFeatures[states[i+1]]
+                for f in transition:
+                    if f[0] == '+':
+                        stateClause.append(Not(currentState[f[1:]]))
+                        stateClause.append(futureState[f[1:]])
+                    else:
+                        stateClause.append(currentState[f[1:]])
+                        stateClause.append(futureState[f[1:]])
+                # If this conidition is fullfilled, the transition is covered by currentstate -> futurestate.
+                transitionClause.append(And(stateClause))
+            # the transition is covered at least once.
+            self.solver.add(Or(transitionClause))

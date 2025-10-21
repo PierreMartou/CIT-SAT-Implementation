@@ -271,18 +271,19 @@ class TestingToolRunner:
         return set1 != set2 or len(logs1) != len(logs2)
 
     @staticmethod
-    def launch_test_oracle(controller, testing_tool_folder, feature_model_path, skip_generation, reference):
+    def launch_test_oracle(controller, testing_tool_folder, feature_model_path, skip_generation, reference, verbose=True):
         if not skip_generation:
             success = TestingToolRunner.generate_tests(feature_model_path, testing_tool_folder, reference)
             if not success:
                 print("Test generation failed.")
                 return
-        else:
-            print("Test suite and alternative execution paths retrieved from memory. They will now be executed.")
+        elif verbose:
+            print("Test suite and alternative execution paths will be retrieved from memory.")
 
         number_of_paths = TestingToolRunner.execute_tests(controller, testing_tool_folder, reference)
 
-        print("Success of the execution. The obtained logs will now be compared for consistency.")
+        if verbose:
+            print("Success of the execution. The obtained logs will now be compared for consistency.")
         discrepancies = TestingToolRunner.verify_logs(testing_tool_folder, reference, number_of_paths)
         #for line in discrepancies:
         #    print(line)
