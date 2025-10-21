@@ -1,130 +1,135 @@
 3
 0.0% undetectables
 ACTIVATION
-TreeRoot-EmergencyLevel-Widget-High-Instructions-InstructionsColdweather-Low-Map-Feature
+TreeRoot-Map-Widget-Instructions-EmergencyLevel-InstructionsFloods-High-Feature
 DEACTIVATION
-InstructionsFloods
+InstructionsColdweather-Low
 BREAKPOINT (Test 0 - initial state)
+ACTIVATION
+
+DEACTIVATION
+Map
 ACTIVATION
 
 DEACTIVATION
 High
 ACTIVATION
-
-DEACTIVATION
-Low
-ACTIVATION
-
-DEACTIVATION
-Instructions-InstructionsColdweather
-ACTIVATION
-InstructionsFloods-Instructions
-DEACTIVATION
-
-ACTIVATION
-
-DEACTIVATION
-Map
-BREAKPOINT (Test 1)
-ACTIVATION
 InstructionsColdweather
+DEACTIVATION
+
+ACTIVATION
+
 DEACTIVATION
 InstructionsFloods
 ACTIVATION
+Low
+DEACTIVATION
+
+BREAKPOINT (Test 1)
+ACTIVATION
+InstructionsFloods
+DEACTIVATION
+InstructionsColdweather
+ACTIVATION
 Map
 DEACTIVATION
 
 ACTIVATION
 
 DEACTIVATION
-Instructions-InstructionsColdweather
+InstructionsFloods-Instructions
 ACTIVATION
-Low
-DEACTIVATION
 
+DEACTIVATION
+Low
 ACTIVATION
 High
 DEACTIVATION
 
 BREAKPOINT (Test 2)
 ACTIVATION
-InstructionsFloods-Instructions
+InstructionsColdweather-Instructions
 DEACTIVATION
-High
-ACTIVATION
 
-DEACTIVATION
-Map-Low
 ACTIVATION
-InstructionsColdweather
+Low
+DEACTIVATION
+Map-High
+ACTIVATION
+InstructionsFloods
 DEACTIVATION
 
 BREAKPOINT (Test 3)
 ACTIVATION
 
 DEACTIVATION
-InstructionsColdweather
+InstructionsFloods
 ACTIVATION
 Map
 DEACTIVATION
-InstructionsFloods-Instructions
+Instructions-InstructionsColdweather
 BREAKPOINT (Test 4)
 ACTIVATION
-InstructionsFloods-Instructions-InstructionsColdweather
+InstructionsColdweather-Instructions-InstructionsFloods
 DEACTIVATION
 Map
 ACTIVATION
-High-Low
+High
 DEACTIVATION
-
+Low
 BREAKPOINT (Test 5)
 ACTIVATION
-
-DEACTIVATION
-High-InstructionsColdweather-Low
-ACTIVATION
 Map
 DEACTIVATION
-InstructionsFloods-Instructions
+InstructionsColdweather-Instructions-InstructionsFloods
+ACTIVATION
+Low
+DEACTIVATION
+High
 BREAKPOINT (Test 6)
 ACTIVATION
-InstructionsFloods-High-Instructions
+Instructions-InstructionsFloods-High
 DEACTIVATION
 Map
 BREAKPOINT (Test 7)
 ACTIVATION
 InstructionsColdweather
 DEACTIVATION
-High
+InstructionsFloods-High
 ACTIVATION
-Map-Low
+Map
 DEACTIVATION
-InstructionsFloods
+Low
 BREAKPOINT (Test 8)
 ACTIVATION
-InstructionsFloods
-DEACTIVATION
-InstructionsColdweather-Low-Map
-ACTIVATION
-High-Map
-DEACTIVATION
-
-BREAKPOINT (Test 9)
-ACTIVATION
-
-DEACTIVATION
-InstructionsFloods-High-Instructions
-ACTIVATION
-High-Instructions-InstructionsColdweather
+InstructionsFloods-Low
 DEACTIVATION
 Map
+ACTIVATION
+High
+DEACTIVATION
+InstructionsColdweather
+BREAKPOINT (Test 9)
+ACTIVATION
+InstructionsColdweather
+DEACTIVATION
+InstructionsFloods
 BREAKPOINT (Test 10)
 ACTIVATION
 InstructionsFloods
 DEACTIVATION
-High-InstructionsColdweather
+High
 ACTIVATION
-High-Map-Low
+Map
 DEACTIVATION
 
 BREAKPOINT (Test 11)
+ACTIVATION
+
+DEACTIVATION
+InstructionsFloods
+ACTIVATION
+High
+DEACTIVATION
+
+BREAKPOINT (Test 12)

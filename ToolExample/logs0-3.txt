@@ -34,6 +34,3 @@ ENDSTATE (Test 10)
 Emergency level: 2
 LINEMARKER
 ENDSTATE (Test 11)
-Emergency level: 2
-LINEMARKER
-ENDSTATE (Test 12)

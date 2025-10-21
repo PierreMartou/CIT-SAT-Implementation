@@ -1,62 +1,67 @@
 3
 0.0% undetectables
 ACTIVATION
-TreeRoot-EmergencyLevel-Widget-High-Instructions-InstructionsColdweather-Low-Map-Feature
+TreeRoot-Map-Widget-Instructions-EmergencyLevel-InstructionsFloods-High-Feature
 DEACTIVATION
-InstructionsFloods
+InstructionsColdweather-Low
 BREAKPOINT (Test 0 - initial state)
 ACTIVATION
-InstructionsFloods
+InstructionsColdweather-Low
 DEACTIVATION
-High-InstructionsColdweather-Low-Map
+Map-InstructionsFloods-High
 BREAKPOINT (Test 1)
 ACTIVATION
-High-Low-Map
+Map-High
 DEACTIVATION
-InstructionsFloods-Instructions
+InstructionsColdweather-Instructions-Low
 BREAKPOINT (Test 2)
 ACTIVATION
-InstructionsFloods-Instructions-InstructionsColdweather
+InstructionsColdweather-Instructions-InstructionsFloods-Low
 DEACTIVATION
-High-Low-Map
+Map-High
 BREAKPOINT (Test 3)
 ACTIVATION
 Map
 DEACTIVATION
-InstructionsFloods-Instructions-InstructionsColdweather
+InstructionsColdweather-Instructions-InstructionsFloods
 BREAKPOINT (Test 4)
 ACTIVATION
-InstructionsFloods-High-Instructions-InstructionsColdweather-Low
+InstructionsColdweather-Instructions-InstructionsFloods-High
 DEACTIVATION
-Map
+Map-Low
 BREAKPOINT (Test 5)
 ACTIVATION
-Map
+Map-Low
 DEACTIVATION
-InstructionsFloods-High-Instructions-InstructionsColdweather-Low
+InstructionsColdweather-Instructions-InstructionsFloods-High
 BREAKPOINT (Test 6)
 ACTIVATION
-InstructionsFloods-High-Instructions
+Instructions-InstructionsFloods-High
 DEACTIVATION
 Map
 BREAKPOINT (Test 7)
 ACTIVATION
-InstructionsColdweather-Low-Map
+Map-InstructionsColdweather
 DEACTIVATION
-InstructionsFloods-High
+InstructionsFloods-High-Low
 BREAKPOINT (Test 8)
 ACTIVATION
-InstructionsFloods-High
+InstructionsFloods-High-Low
 DEACTIVATION
-InstructionsColdweather-Low
+Map-InstructionsColdweather
 BREAKPOINT (Test 9)
 ACTIVATION
 InstructionsColdweather
 DEACTIVATION
-InstructionsFloods-Map
+InstructionsFloods
 BREAKPOINT (Test 10)
 ACTIVATION
-InstructionsFloods-Low-Map
+Map-InstructionsFloods
 DEACTIVATION
-InstructionsColdweather
+High
 BREAKPOINT (Test 11)
+ACTIVATION
+High
+DEACTIVATION
+InstructionsFloods
+BREAKPOINT (Test 12)

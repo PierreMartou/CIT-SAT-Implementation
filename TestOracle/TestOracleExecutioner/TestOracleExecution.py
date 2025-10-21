@@ -8,7 +8,7 @@ from TestOracle.AlternativePaths import computeAlts
 class TestingToolRunner:
 
     @staticmethod
-    def generate_tests(feature_model_path, testing_tool_folder, reference, computeCIT=False):
+    def generate_tests(feature_model_path, testing_tool_folder, reference, verbose=False, computeCIT=False):
 
         featuresFile = feature_model_path #"./features.txt" #
         index = reference #"0"#
@@ -21,13 +21,14 @@ class TestingToolRunner:
                 print("!!!!WARNING : reserved keywords are used in the name of features (ACTIVATION, DEACTIVATION, BREAKPOINT). Please modify them to prevent this.")
 
         iteration = ""
-        print("Step 1/2: Generating test suite")
-        testsuite = computeCTTSuite(testingToolFolder + "testsuite" + str(index), s, iteration, recompute=True, verbose=True)
+        if verbose:
+            print("Step 1/2: Generating test suite")
+        testsuite = computeCTTSuite(testingToolFolder + "testsuite" + str(index), s, iteration, recompute=True, verbose=verbose)
         if computeCIT:
             testsuite = computeCITSuite(testingToolFolder + "testsuite" + str(index), s, iteration, recompute=True)
-
-        print("Step 2/2: Generating execution paths")
-        paths, undetectables = computeAlts(testingToolFolder + "paths"+str(index), s, testsuite.getUnorderedTestSuite(), iteration, states=4, recompute=True, verbose=True)
+        if verbose:
+            print("Step 2/2: Generating execution paths")
+        paths, undetectables = computeAlts(testingToolFolder + "paths"+str(index), s, testsuite.getUnorderedTestSuite(), iteration, states=4, recompute=True, verbose=verbose)
 
         paths = [[p.getUnorderedTestSuite() for p in path] for path in paths]
         allFiles = []
@@ -161,31 +162,32 @@ class TestingToolRunner:
             with open(path, 'r') as file:
                 lines = file.readlines()
             step_counter = 0
+            all_transitions = []
             for i in range(2, len(lines[2:])):
                 line = lines[i]
                 line = line.strip()
 
-                if step_counter == int(step):
+                if step_counter == int(step) and line == "ACTIVATION" :
                     activation_line = lines[i+1].strip()
                     if activation_line:
                         activations = activation_line.split("-")
                     else:
                         activations = []
                     if lines[i+2].strip() != "DEACTIVATION":
-                        print("Irregular pattern detected.")
+                        print("Irregular pattern detected, the line should be DEACTIVATION but it's: ", lines[i+2].strip())
                     deactivation_line = lines[i+3].strip()
                     if deactivation_line:
                         deactivations = deactivation_line.split("-")
                     else:
                         deactivations = []
-                    return [activations, deactivations]
+                    all_transitions.append([activations, deactivations])
 
                 if "BREAKPOINT" in line:
                     step_counter += 1
         except IOError as e:
             print(e)
             return None
-        return None
+        return all_transitions
 
     # if not verbose, returns : step at which there is an inconsistency, the alternative path number, the original logs, the alternative logs
     @staticmethod
@@ -206,7 +208,7 @@ class TestingToolRunner:
                     if verbose:
                         discrepancy = f"==================================================\nReference {reference}, at configuration {i}, between path 0 and alternative path {j}, logs are inconsistent.\n"
                         discrepancy += f"\nThe transitions were : "
-                        erroneousFeatures = TestingToolRunner.activations_at_specific_step(str(i), testing_tool_folder + "paths0-0.txt")
+                        erroneousFeatures = TestingToolRunner.activations_at_specific_step(str(i), testing_tool_folder + "paths0-0.txt")[0]
 
                         #feature_filter = ["High", "Low"]
                         #erroneousFeatures = ["-"+erroneousFeatures[0][i] for i in range(len(erroneousFeatures[0])) if erroneousFeatures[0][i] in feature_filter] + ["+" + erroneousFeatures[1][i] for i in range(len(erroneousFeatures[1])) if erroneousFeatures[1][i] in feature_filter]
@@ -273,7 +275,7 @@ class TestingToolRunner:
     @staticmethod
     def launch_test_oracle(controller, testing_tool_folder, feature_model_path, skip_generation, reference, verbose=True):
         if not skip_generation:
-            success = TestingToolRunner.generate_tests(feature_model_path, testing_tool_folder, reference)
+            success = TestingToolRunner.generate_tests(feature_model_path, testing_tool_folder, reference, verbose)
             if not success:
                 print("Test generation failed.")
                 return

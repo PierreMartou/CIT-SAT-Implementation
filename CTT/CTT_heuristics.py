@@ -308,11 +308,11 @@ class BuildingCTT:
         unCovPairsCount = {}
 
         for transition in specificTransitionCoverage:
-            # it's in the form : "(+A, -B)"
+            # it's in the form : "((A, +1), (B, -1))"
             f1 = transition[0]
             f2 = transition[1]
-            pair1 = (f1[1:], abs(self.valuesForFactors[f1[1:]][0]) if f1[:1] == '+' else -self.valuesForFactors[f1[1:]][0])
-            pair2 = (f2[1:], abs(self.valuesForFactors[f2[1:]][0]) if f2[:1] == '+' else -self.valuesForFactors[f2[1:]][0])
+            pair1 = (f1[0], abs(self.valuesForFactors[f1[0]][0]) if f1[1] > 0 else -self.valuesForFactors[f1[0]][0])
+            pair2 = (f2[0], abs(self.valuesForFactors[f2[0]][0]) if f2[1] > 0 else -self.valuesForFactors[f2[0]][0])
 
             # could skip this checkSAT since it's a verified suspect.
             if self.solver.checkSAT([pair1[1], pair2[1]]):
@@ -331,8 +331,8 @@ class BuildingCTT:
                     print("ERROR: A transition in the specific transition coverage is not valid !")
             else:
                 print("DID NOT RECOGNIZE HEURISTICS IN COMPUTESETTOCOVER.")
-        if len(specificTransitionCoverage) == 1:
-            print(unCovTransitions, unCovPairsCount)
+        #if len(specificTransitionCoverage) == 1:
+        #    print(unCovTransitions, unCovPairsCount)
         return unCovTransitions, unCovPairsCount
 
     def getCoveringArray(self):
@@ -346,12 +346,14 @@ class BuildingCTT:
             dupl1[key] = self.valuesForFactors[key][0]
             dupl2[key] = self.valuesForFactors[key][1]
             return [dupl1, dupl2]
-        print("Progression: 0%       ", end='')
+        if self.verbose:
+            print("Progression: 0%       ", end='')
         while len(self.unCovSets) + len(self.unCovTransitions) > 0 and len(self.coveringArray) <= self.limit:
             if self.verbose:
                 coverage = 100-(len(self.unCovSets) + len(self.unCovTransitions))*100/self.totalNumberOfPairs
                 #print("\r(" + str(self.numTests) + ") Current coverage: " + str(coverage) + "%", flush=True, end='')
-                print("\rProgression: "+str(coverage) + "%         ", flush=True, end='')
+                if self.verbose:
+                    print("\rProgression: "+str(coverage) + "%         ", flush=True, end='')
 
             #self.weight_lookahead = self.base_weight_lookahead
             #if self.prevWasDecidedByLookahead:

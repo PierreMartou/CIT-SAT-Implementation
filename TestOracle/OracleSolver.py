@@ -77,6 +77,12 @@ class OracleSolver:
 
     def minPathObjective(self):
         equalStateVariables = []
+
+        equalStateVariable = Int("EqualStateVariable#start")
+        equalStateVariables.append(equalStateVariable)
+        self.solver.add(If(And([self.finalFeatures[f] == self.startFeatures[f] for f in self.finalFeatures]),
+                           equalStateVariable == 0, equalStateVariable == 1))
+
         for state in range(len(self.featuresInStates)):
             equalStateVariable = Int("EqualStateVariable#"+str(state))
             equalStateVariables.append(equalStateVariable)
@@ -94,19 +100,19 @@ class OracleSolver:
             futureState = self.allFeatures[states[i+1]]
             for f in currentState:
                 equalValueVariable = Int("EqualValueVariable#"+str(f)+"#"+str(states[i]))
-                equalValueVariables.append(equalValueVariable)
                 self.solver.add(If(currentState[f] == futureState[f], equalValueVariable == 0, equalValueVariable == 1))
+                equalValueVariables.append(equalValueVariable)
 
-        cost = Int("InverseCost")
+        cost = Int("Cost")
         self.solver.add(cost == sum(equalValueVariables))
         return cost
 
     def createObjectives(self):
         obj1 = self.minPathObjective()
-        #obj2 = self.minCostObjective()
+        obj2 = self.minCostObjective()
         # obj3 = weighted sum of obj1 and obj2
         # return obj3
-        return obj1
+        return obj1, obj2
 
 
     def setState(self, featureStates, values):
@@ -151,9 +157,10 @@ class OracleSolver:
         if mandatoryTransitions:
             self.mustHaveTransitions(mandatoryTransitions)
 
-        self.solver.minimize(self.objective)
+        # order in self.objective is important since z3 optimises in lexicographic manner.
+        for o in self.objective:
+            self.solver.minimize(o)
         satModel = self.solver.check()
-
         if satisOnly:
             return satModel
 
@@ -174,10 +181,10 @@ class OracleSolver:
                     state = int(state)
                     states[state][feature] = self.s.toIndex(feature) if values[solverFeature] else -self.s.toIndex(feature)
 
-                if state == "start" and initConfig is None:
+                if state == "start" and initConfig is None and feature not in ["EqualStateVariable"]:
                     new_init_config[feature] = self.s.toIndex(feature) if values[solverFeature] else -self.s.toIndex(feature)
 
-                if state == "final" and finalConfig is None:
+                if state == "final" and finalConfig is None and feature not in ["EqualStateVariable"]:
                     new_final_config[feature] = self.s.toIndex(feature) if values[solverFeature] else -self.s.toIndex(feature)
 
         if initConfig is None:
@@ -229,7 +236,7 @@ class OracleSolver:
         else:
             return True
 
-    # Accepts transition in the form "+a, +b"
+    # Accepts transition in the form ((a, 1), (b, -1))
     def mustHaveTransitions(self, mandatoryTransitions):
         states = ['start'] + [i for i in range(len(self.featuresInStates))] + ['final']
         for transition in mandatoryTransitions:
@@ -239,13 +246,13 @@ class OracleSolver:
                 currentState = self.allFeatures[states[i]]
                 futureState = self.allFeatures[states[i+1]]
                 for f in transition:
-                    if f[0] == '+':
-                        stateClause.append(Not(currentState[f[1:]]))
-                        stateClause.append(futureState[f[1:]])
+                    if f[1] > 0:
+                        stateClause.append(Not(currentState[f[0]]))
+                        stateClause.append(futureState[f[0]])
                     else:
-                        stateClause.append(currentState[f[1:]])
-                        stateClause.append(futureState[f[1:]])
-                # If this conidition is fullfilled, the transition is covered by currentstate -> futurestate.
+                        stateClause.append(currentState[f[0]])
+                        stateClause.append(Not(futureState[f[0]]))
+                # If this condition is fullfilled, the transition is covered by currentstate -> futurestate.
                 transitionClause.append(And(stateClause))
             # the transition is covered at least once.
             self.solver.add(Or(transitionClause))

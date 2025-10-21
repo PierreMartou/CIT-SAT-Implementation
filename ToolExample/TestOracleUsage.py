@@ -7,6 +7,7 @@ from ErrorIsolation.ErrorIsolation import *
 from TestOracle.TestOracleExecutioner.TestController import EmergencyController
 from TestOracle.TestOracleExecutioner.TestOracleExecution import TestingToolRunner
 
+
 controller = EmergencyController()
 reference = 0
 skip_generation = False
@@ -14,8 +15,11 @@ testing_tool_folder = "./"
 feature_model_path = "./features.txt"
 discrepancies = TestingToolRunner.launch_test_oracle(controller, testing_tool_folder, feature_model_path, skip_generation, reference)
 discr = discrepancies[0]
-print(discr)
-error_isolation(controller, testing_tool_folder, feature_model_path, discr[1], reference, discr[0])
+print("Discrepancy found:", discr)
+culprits = error_isolation(controller, testing_tool_folder, feature_model_path, discr[1], reference, discr[0], verbose=True)
+print(culprits)
+#testing_z3solver(feature_model_path)
+
 
 """models = "../data/RIS-FOP/"
 features = models + 'features.txt'
