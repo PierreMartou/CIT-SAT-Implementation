@@ -29,18 +29,54 @@ def find_suspects(original_path, alt_path, step):
     for path in [original_path, alt_path]:
         all_transitions = TestingToolRunner.activations_at_specific_step(step, path)
         for [activations, deactivations] in all_transitions:
-            activatedFeatures = [(f, 1) for f in activations]
-            deactivatedFeatures = [(f, -1) for f in deactivations]
-            transitions = activatedFeatures + deactivatedFeatures
-            for i in range(len(transitions)):
-                for j in range(i+1, len(transitions)):
-                    # ordering
-                    if transitions[i][0] < transitions[j][0]:
-                        suspects.append((transitions[i], transitions[j]))
-                    else:
-                        suspects.append((transitions[j], transitions[i]))
+            suspects.append(all_combinations(activations, deactivations))
 
     return suspects
+
+# Takes two lists of features (where a feature is a String)
+def all_combinations(activations, deactivations):
+    combinations = []
+    activatedFeatures = [(f, 1) for f in activations]
+    deactivatedFeatures = [(f, -1) for f in deactivations]
+    transitions = activatedFeatures + deactivatedFeatures
+    for i in range(len(transitions)):
+        for j in range(i + 1, len(transitions)):
+            # ordering
+            if transitions[i][0] < transitions[j][0]:
+                combinations.append((transitions[i], transitions[j]))
+            else:
+                combinations.append((transitions[j], transitions[i]))
+    return combinations
+
+def find_suspects_SPLOT(original_suite, alternatives, step):
+    suspects = []
+    if step > 0:
+        prev = original_suite.getUnorderedTestSuite()[step-1]
+    else:
+        prev = {f: -1 for f in original_suite.getUnorderedTestSuite()[0]}
+
+    original_next = original_suite.getUnorderedTestSuite()[step]
+
+    for next in [original_next] + alternatives[step-1]:
+        activations = [f for f in prev if prev[f] < 0 and next[f] > 0]
+        deactivations = [f for f in prev if prev[f] > 0 and next[f] < 0]
+        suspects.append(all_combinations(activations, deactivations))
+
+        prev = next
+
+    return suspects
+
+def group_initialisation(suspects, system_data):
+    groups = []
+    while suspects:
+        t = BuildingCTT(system_data, verbose=False, limit=0, specificTransitionCoverage=suspects)
+        testSuite = TestSuite(system_data, t.getCoveringArray(), limit=0)
+        config = testSuite.getUnorderedTestSuite()[0]
+        group = [s for s in suspects if transitionIsPossible(s, config)]
+        suspects = [s for s in suspects if s not in group]
+        groups.append(group)
+
+    return groups
 
 def error_isolation(controller, testing_tool_folder, feature_model_path, alt_number, reference, step, states=4, verbose=False):
 
@@ -64,14 +100,8 @@ def error_isolation(controller, testing_tool_folder, feature_model_path, alt_num
     all_suspects = suspects.copy()
     culprits = []
     # step 2 : create biggest (hopefully valid but not sure) groups. Aim for biggest, then biggest with the rest until all suspects are in a group. Can use CTT principles for that ?
-    groups = []
-    while suspects:
-        t = BuildingCTT(system_data, verbose=False, limit=0, specificTransitionCoverage=suspects)
-        testSuite = TestSuite(system_data, t.getCoveringArray(), limit=0)
-        config = testSuite.getUnorderedTestSuite()[0]
-        group = [s for s in suspects if transitionIsPossible(s, config)]
-        suspects = [s for s in suspects if s not in group]
-        groups.append(group)
+
+    groups = group_initialisation(suspects, system_data)
 
     #print("\nFinal groups: ", len(groups))
 
@@ -136,7 +166,7 @@ def error_isolation(controller, testing_tool_folder, feature_model_path, alt_num
             if not discrepancies:
                 # all innocent
                 if testing:
-                    print("innocenting culprit :(")
+                    print("clearing culprit :(")
                 all_suspects = [s for s in all_suspects if s not in transitions_under_test]
             else:
                 if len(transitions_under_test) > 1:

@@ -3,6 +3,7 @@ from utils.SystemData import SystemData
 from utils.TestSuite import allTransitions
 import pickle
 import os
+import sys
 
 def computeAlts(fpath, s, testSuite, tag=0, states=4, recompute=False, verbose=False):
     version = "1.0.2"
@@ -25,14 +26,30 @@ def computeAlts(fpath, s, testSuite, tag=0, states=4, recompute=False, verbose=F
         storeAlts(alts, filepath)
         return toReturn
 
+
+def retrieveAlts(fpath, tag=0, states=4):
+    filepath = fpath + "-" + str(states) + ".pkl"
+    if os.path.exists(filepath):
+        alts = readAlts(filepath)
+    else:
+        return None
+
+    if alts.computedTestSuite(tag):
+        return alts.altPathsForTestSuite(None, tag=tag)
+    else:
+        return None
+
+
 def readAlts(filePath):
     alts = pickle.load(open(filePath, 'rb'))
     return alts
 
 def storeAlts(alts, filePath):
+
     f = open(filePath, "wb")
     pickle.dump(alts, f)
     f.close()
+
 
 class AlternativePaths:
     def __init__(self, systemData, states=4, version="1.0.0", verbose=False):
