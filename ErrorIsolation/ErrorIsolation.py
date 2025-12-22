@@ -14,6 +14,7 @@ def getErrorIsolation(fpath, s, storageCTT, storageAlts, iteration=0, states=6, 
 
     if os.path.exists(file_path) and not recompute:
         error_isolation = readErrorIsolation(file_path)
+        print(error_isolation.get_current_statistics())
         if not error_isolation.isUpToDate(version):
             #print("Error isolation not up to date, regenerating, for file: ", fpath)
             if not isinstance(s, SystemData):
@@ -65,6 +66,9 @@ class ErrorIsolation:
 
     def isUpToDate(self, version):
         return self.version == version
+
+    def get_current_statistics(self):
+        return self.statistics
 
     @staticmethod
     def all_combinations(activations, deactivations):
