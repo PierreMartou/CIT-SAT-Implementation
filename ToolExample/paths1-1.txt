@@ -1,0 +1,27 @@
+2
+0% undetectables
+ACTIVATION
+Map-Widget-Instructions-EmergencyLevel-InstructionsFloods-Feature
+DEACTIVATION
+
+ACTIVATION
+Low
+DEACTIVATION
+Map
+ACTIVATION
+InstructionsColdweather
+DEACTIVATION
+
+ACTIVATION
+
+DEACTIVATION
+
+ACTIVATION
+
+DEACTIVATION
+
+ACTIVATION
+
+DEACTIVATION
+
+BREAKPOINT
