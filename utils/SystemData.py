@@ -16,6 +16,8 @@ class SystemData:
         self.contexts = []
         self.initContexts(contextsFile)
 
+        self.minedUndecomposableTransitions = []
+
         # Read file for constraints
         self.featureConstraints = []
         self.initFeatureConstraint(featuresFile)

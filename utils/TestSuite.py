@@ -24,7 +24,7 @@ def computeCITSuite(fpath, s, iteration=0, candidates=30, recompute=False):
 
 def computeCTTSuite(fpath, s, iteration, candidates=20, interaction_filter=True, weight_lookahead=0.5,
                     weight_comparative=0.3, recompute=False, limit=1000, verbose=False, specificTransitionCoverage=None):
-    version = "1.0.1"
+    version = "1.1.0"
     filepath = fpath + str(iteration)+".pkl"
     if os.path.exists(filepath) and not recompute:
         testSuite = readSuite(filepath)
@@ -619,7 +619,7 @@ def allPairs(systemData, filtered=True):
         unCovSets = [unCovSet for unCovSet in unCovSets if unCovSet[0][0] not in cores and unCovSet[1][0] not in cores]
     return unCovSets
 
-def transitionExist(s):
+def  transitionExist(s):
     mySATsolver = SATSolver(s)
     valuesForFactors = s.getValuesForFactors()
     factors = list(valuesForFactors.keys())

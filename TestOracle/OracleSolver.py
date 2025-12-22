@@ -17,10 +17,13 @@ def firstTry():
 
 
 class OracleSolver:
-    def __init__(self, systemData, states):
+    def __init__(self, systemData, states, timeout=60000):
 
         self.s = systemData
-        self.solver = Optimize()
+        #self.solver = Optimize()
+        self.solver = Solver()
+
+        self.solver.set("timeout", timeout)
         self.clauses = []
         self.featuresInStates = []
 
@@ -128,8 +131,93 @@ class OracleSolver:
                 self.solver.add(Not(featureStates[f]))
                 #self.solver.assert_exprs(Not(featureStates[f]))
 
+
     def createPath(self, initConfig, finalConfig, forbiddenTransitions, satisOnly=False, mandatoryTransitions = None, startupConfig=None):
         self.solver.pop()
+        self.solver.push()
+        # add initial configuration to constraints
+        if initConfig:
+            self.setState(self.startFeatures, initConfig)
+
+        # add final configuration to constraints
+        if finalConfig:
+            self.setState(self.finalFeatures, finalConfig)
+
+        # add contraints on transitions
+        self.forbidAllTransitions(forbiddenTransitions)
+
+        # if there is a startup configuration, we must forbid transitions from this configuration to initial configuration.
+        if startupConfig:
+            startupState = {}
+            for f in startupConfig:
+                startupState[f] = Bool(self.featureID(f, "startup"))
+
+            self.setState(startupState, startupConfig)
+
+            for transition in forbiddenTransitions:
+                self.forbidTransition(transition, startupState, self.startFeatures)
+
+        # need specific transitions to exist
+        if mandatoryTransitions:
+            self.mustHaveTransitions(mandatoryTransitions)
+
+        if satisOnly:
+            return self.solver.check()
+
+        number_of_steps_variable = self.objective[0]
+        cost_variable = self.objective[1]
+
+        best_model, best_steps = self.optimise(number_of_steps_variable)
+        if best_model is None:
+            return None
+
+        self.solver.add(number_of_steps_variable <= best_steps)
+
+        best_model, best_cost = self.optimise(cost_variable)
+
+        if best_model is None:
+            return None
+
+        return self.generateTestSuite(best_model, initConfig, finalConfig)
+
+    def optimise(self, objective, improvement_threshold=0.1):
+        self.solver.push()
+
+        best_score = len(self.s.getNodes())*len(self.featuresInStates)
+        best_model = None
+
+        isSat = sat
+
+        while isSat == sat:
+            isSat = self.solver.check()
+            if isSat == sat:
+                curr_model = self.solver.model()
+                curr_score = curr_model[objective].as_long()
+                improvement = best_score - curr_score
+                if curr_score < best_score:
+                    best_model = curr_model
+                    best_score = curr_score
+                    self.solver.add(objective < best_score)
+                else:
+                    break
+
+                if improvement < improvement_threshold * best_score:
+                    break
+
+        self.solver.pop()
+
+        return best_model, best_score
+
+    """def computeSteps(self, initConfig, finalConfig):
+        path = self.createPath(initConfig, finalConfig).getUnorderedTestSuite()
+        steps = len(path)
+        for config in path[:-1]:
+            if config == path[-1]:
+                steps -= 1
+        return steps"""
+
+    def generateTestSuite(self, values, initConfig, finalConfig): #, forbiddenTransitions, satisOnly=False, mandatoryTransitions = None, startupConfig=None):
+        """self.solver.pop()
         self.solver.push()
         # add initial configuration to constraints
         if initConfig:
@@ -166,8 +254,8 @@ class OracleSolver:
 
         if satModel == unsat:
             return None
-
-        values = self.solver.model()
+        """
+        #values = self.solver.model()
         states = [{} for i in range(len(self.featuresInStates))]
         new_init_config = {}
         new_final_config = {}
@@ -223,6 +311,15 @@ class OracleSolver:
             else:
                 nonDecomposables.append(t)
         return decomposables, nonDecomposables
+
+    """def optimisedDecomposableTransition(self, transition):
+        intermediatestates = [{} for i in range(len(transition))]
+        for i in range(len(transition)):
+            changedFeature = transition[i]
+            for f in transition:
+                intermediatestates[i][f[0]] = f[1] if i != i else -1*f[1]
+            if """
+
 
     def decomposableTransition(self, transition):
         initState = {}

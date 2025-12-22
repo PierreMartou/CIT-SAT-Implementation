@@ -211,6 +211,8 @@ def getNumberOfSPLOTModels(category=None):
         size = len(s.getFeatures())
         if size >= miniSize and size < maxiSize and transitionExist(s):
             total += 1
+        if not transitionExist(s):
+            print("Model without any transition: ", filename)
     return total
 
 def SPLOTmodels(rangeCategory):

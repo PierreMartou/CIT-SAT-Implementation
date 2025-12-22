@@ -3,7 +3,7 @@ from TestOracle.AlternativePaths import computeAlts
 from metrics.CTTmetrics import getNumberOfSPLOTModels, smoothLinearApprox, computeCorrelation
 import matplotlib.pyplot as plt
 
-from ErrorIsolation.ErrorIsolation import *
+from ErrorIsolation.ErrorIsolation_preliminarytests import *
 from TestOracle.TestOracleExecutioner.TestController import EmergencyController
 from TestOracle.TestOracleExecutioner.TestOracleExecution import TestingToolRunner
 

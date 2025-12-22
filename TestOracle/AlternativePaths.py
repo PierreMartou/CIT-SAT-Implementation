@@ -1,12 +1,13 @@
 from TestOracle.OracleSolver import OracleSolver
 from utils.SystemData import SystemData
+from utils.SATSolver import SATSolver
 from utils.TestSuite import allTransitions
 import pickle
 import os
 import sys
 
-def computeAlts(fpath, s, testSuite, tag=0, states=4, recompute=False, verbose=False):
-    version = "1.0.2"
+def computeAlts(fpath, s, testSuite, iteration=0, states=6, recompute=False, verbose=False):
+    version = "1.2.0"
     filepath = fpath + "-" + str(states) + ".pkl"
 
     if not isinstance(s, SystemData):
@@ -15,14 +16,17 @@ def computeAlts(fpath, s, testSuite, tag=0, states=4, recompute=False, verbose=F
     if os.path.exists(filepath) and not recompute:
         alts = readAlts(filepath)
         if not alts.isUpToDate(version):
+            #print("Alt paths not up to date, regenerating, for file: ", fpath)
             alts = AlternativePaths(s, states, version, verbose=verbose)
     else:
+        #print("Recomputing paths for file: ", fpath)
         alts = AlternativePaths(s, states, version, verbose=verbose)
 
-    if alts.computedTestSuite(tag):
-        return alts.altPathsForTestSuite(testSuite, tag=tag)
+    if alts.computedTestSuite(iteration):
+        return alts.altPathsForTestSuite(testSuite, iteration=iteration)
     else:
-        toReturn = alts.altPathsForTestSuite(testSuite, tag=tag)
+        #print("Unknown tag, recomputing paths for file: ", fpath)
+        toReturn = alts.altPathsForTestSuite(testSuite, iteration=iteration)
         storeAlts(alts, filepath)
         return toReturn
 
@@ -60,7 +64,6 @@ class AlternativePaths:
         self.allTransitions = allTransitions(self.s)
         self.decomposableTransitions = None
         self.nonDecomposableTransitions = None
-        #self.decomposableTransitions, self.nonDecomposableTransitions = self.solver.preprocessTransitions(self.allTransitions)
         self.allResults = {}
 
     def isUpToDate(self, version):
@@ -71,13 +74,40 @@ class AlternativePaths:
     def computedTestSuite(self, tag):
         return tag in self.allResults
 
-    def altPathsForTestSuite(self, testSuite, tag=0):
-        if tag in self.allResults:
-            return self.allResults[tag][0], self.allResults[tag][1]
-        solver = OracleSolver(self.s, self.states)
-        transitionsToCover = self.allTransitions
+    def preprocessTransitions(self, solver):
+        decomposables = []
+        nonDecomposables = []
+        for t in self.allTransitions:
+            #indexedT = [self.s.toIndex(f[1:]) if f[0:1] == '+' else -self.s.toIndex(f[1:]) for f in t]
+            if self.decomposableTransition(solver, t):
+                decomposables.append(t)
+            else:
+                nonDecomposables.append(t)
+        return decomposables, nonDecomposables
+
+    def decomposableTransition(self, solver, transition):
+        values = []
+        for i in range(len(transition)):
+            for j in range(len(transition)):
+                f = transition[j]
+                values.append(f[1] if i != j else -1 * f[1])
+            if solver.checkSAT(values):
+                return True
+        return False
+
+
+    def altPathsForTestSuite(self, testSuite, iteration=0):
+        if iteration in self.allResults:
+            return self.allResults[iteration][0], self.allResults[iteration][1]
+
+        solver = OracleSolver(self.s, self.states, timeout=10000)
+
+        satSolver = SATSolver(self.s)
+        self.decomposableTransitions, self.nonDecomposableTransitions = self.preprocessTransitions(satSolver)
+
+        transitionsToCover = self.decomposableTransitions if self.decomposableTransitions is not None else self.allTransitions
         totalTransitions = len(transitionsToCover)
-        allUncoverablesTransitions = []
+        allUncoverablesTransitions = self.nonDecomposableTransitions if self.nonDecomposableTransitions is not None else []
         allPaths = []
         if self.decomposableTransitions is not None:
             transitionsToCover = self.decomposableTransitions
@@ -96,8 +126,12 @@ class AlternativePaths:
             allPaths.append(newPaths)
         if self.verbose:
             print("\rProgression: ", 100, "%  ", flush=True)
-        undetectables = len(allUncoverablesTransitions)/totalTransitions
-        self.allResults[tag] = allPaths, undetectables
+
+        if totalTransitions > 0:
+            undetectables = len(allUncoverablesTransitions)/totalTransitions
+        else:
+            undetectables = 0
+        self.allResults[iteration] = allPaths, undetectables
         return allPaths, undetectables
 
     def createAlternativePaths(self, config1, config2, transitionsToCover, solver, prevUncoverables = []):
@@ -117,8 +151,10 @@ class AlternativePaths:
         paths = []
         while len(possiblePathCoverage) > 0:
             possibleCoverage = possiblePathCoverage.pop()
+            #print("computing new path", possibleCoverage)
             path = solver.createPath(config1, config2, possibleCoverage)
             if path is None:
+                #print("failed to create a path")
                 if len(possibleCoverage) > 1:
                     possiblePathCoverage.append(possibleCoverage[:round(len(possibleCoverage)/2)])
                     possiblePathCoverage.append(possibleCoverage[round(len(possibleCoverage)/2):])
@@ -129,6 +165,7 @@ class AlternativePaths:
                 paths.append(path)
                 for t in possibleCoverage:
                     currentCoverage.append(t)
+
         if len(uncoverableTransitions) == 0:
             for t in currentCoverage:
                 transitionsToCover.remove(t)

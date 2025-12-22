@@ -13,11 +13,11 @@ def printOriginalVsAlterativePaths(originalTestSuite, alternatives):
         paths = alternatives[i-1]
         lengthAndCost = [p.getShortenedLengthAndCost() for p in paths]
         if len(lengthAndCost) == 0:
-            print(str(i+1) + " & " + originalTestSuite.getPrintableLine(original[i-1], original[i]) + " & \\multicolumn{"+str(width)+"}{l|}{\\emph{No alternative execution path is necessary.}} \\\\\\hline  ")
+            print(str(i) + "$\\rightarrow$" + str(i+1) + " & " + originalTestSuite.getPrintableLine(original[i-1], original[i]) + " & \\multicolumn{"+str(width)+"}{l|}{\\emph{No alternative execution path is necessary.}} \\\\\\hline  ")
             continue
         maxLine = max([t[0] for t in lengthAndCost])-1
         toPrint = [" & " for i in range(maxLine)]
-        toPrint[0] = str(i+1) + " & \\multirow{" + str(maxLine) + "}{=}{" + originalTestSuite.getPrintableLine(original[i-1], original[i]) + "} "
+        toPrint[0] = str(i) + "$\\rightarrow$" + str(i+1) + " & \\multirow{" + str(maxLine) + "}{=}{" + originalTestSuite.getPrintableLine(original[i-1], original[i]) + "} "
         for k in range(len(paths)):
             #print(k)
             pathSuite = paths[k]
@@ -38,13 +38,14 @@ def printOriginalVsAlterativePaths(originalTestSuite, alternatives):
 
 
 def RISpath():
-    models = "../data/RIS-FOP/"
+    #models = "../data/RIS-FOP/"
+    models = "../data/MedicalAppointmentManager/"
     s = SystemData(featuresFile=models + 'features.txt')
-    storage = models + "TestSuitesCTT/"
-    altsStorage = models + "AlternativePaths/alts"
+    storage = models + "TestSuitesCTT/runningexample"
+    altsStorage = models + "AlternativePaths/runningexample-alts"
     iteration = 1
     testsuite = computeCTTSuite(storage, s, iteration, recompute=False, verbose=True)
-    testsuite.printLatexTransitionForm()
+    #testsuite.printLatexTransitionForm()
     paths, undetectables = computeAlts(altsStorage, s, testsuite.getUnorderedTestSuite(), iteration, states=4, recompute=False)
     printOriginalVsAlterativePaths(testsuite, paths)
 
@@ -177,23 +178,21 @@ def oracleSPLOTmetrics(rangeCategory, states=None, recompute=False, verbose=Fals
 
 
 if __name__ == '__main__':
-    categories = [[10, 20], [20, 30], [30, 40], [40, 50], [50, 70], [70, 100]]
+    #categories = [[10, 20], [20, 30], [30, 40], [40, 50], [50, 70], [70, 100]]
+    categories = [[10, 20], [20, 30], [30, 40], [40, 50], [50, 60], [60, 70], [70, 80], [80, 90], [90, 100]]
     #debugging("model_20130510_203163945.txt", 2)
-    #with concurrent.futures.ProcessPoolExecutor() as executor:
-    #    futures = []
-    #    futures.append(executor.submit(oracleSPLOTmetrics, [10, 30], [2, 3, 4, 5, 6], recompute=False, verbose=True))
-    #    futures.append(executor.submit(oracleSPLOTmetrics, [30, 40], [2, 3, 4, 5, 6], recompute=False, verbose=True))
-    #    futures.append(executor.submit(oracleSPLOTmetrics, [50, 60], [2, 3, 4, 5, 6], recompute=False, verbose=True))
-    #    futures.append(executor.submit(oracleSPLOTmetrics, [70, 80], [2, 3, 4, 5, 6], recompute=False, verbose=True))
-    #    futures.append(executor.submit(oracleSPLOTmetrics, [80, 90], [2, 3, 4, 5, 6], recompute=False, verbose=True))
-    #    futures.append(executor.submit(oracleSPLOTmetrics, [90, 100], [2, 3, 4, 5, 6], recompute=False, verbose=True))
-    #    done = 0
-    #    for f in futures:
-    #        done += 1
-    #        f.result()
-    #       print("done :", done)
+    """with concurrent.futures.ProcessPoolExecutor() as executor:
+        futures = []
+        for c in categories:
+            futures.append(executor.submit(oracleSPLOTmetrics, c, [6], recompute=False, verbose=False))
+        done = 0
+        for f in futures:
+            done += 1
+            f.result()
+        print("done :", done)"""
+    for c in categories:
+        oracleSPLOTmetrics(c, [6], recompute=False, verbose=True)
 
-    oracleSPLOTmetrics([10, 100], [2, 3, 4, 5, 6], recompute=False, verbose=True)
-
-    for r in categories:
-        oracleSPLOTmetrics(r, [6], recompute=False, verbose=True)
+    #for r in categories:
+    #    oracleSPLOTmetrics(r, [6], recompute=False, verbose=True)
+    #RISpath()

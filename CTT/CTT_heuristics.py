@@ -102,13 +102,17 @@ class BuildingCTT:
                     score += 1
 
             if self.weight_lookahead > 0:
-                futureTestCase = [-v]
+                #futureTestCase = [-v]
+                futureTestCase = {}
+                futureTestCase[f] = -v
                 shuffledUncovs = self.unCovTransitions.copy()
                 random.shuffle(shuffledUncovs)
                 for transition in shuffledUncovs:
                     if transition not in possibleTransitions:
                         # LOOKAHEAD SCORES IF WE PREPARE FOR A FUTURE TRANSITION BY USING THIS VALUE.
-                        if transition[0] == (f, -v) and transition[1][0] in currentTestCase and currentTestCase[transition[1][0]] == -1 * transition[1][1]:
+
+                        # WARNING CHANGE...
+                        """if transition[0] == (f, -v) and transition[1][0] in currentTestCase and currentTestCase[transition[1][0]] == -1 * transition[1][1]:
 
                             if transition[1][1] in futureTestCase or self.solver.checkSAT(futureTestCase + [transition[1][1]]):
                                 score += self.weight_lookahead
@@ -120,7 +124,18 @@ class BuildingCTT:
                             if transition[0][1] in futureTestCase or self.solver.checkSAT(futureTestCase + [transition[0][1]]):
                                 score += self.weight_lookahead
                                 futureTestCase = futureTestCase + [transition[0][1]] if transition[0][1] not in futureTestCase else futureTestCase
-                                futureTestCase = futureTestCase + [transition[1][1]] if transition[1][1] not in futureTestCase else futureTestCase
+                                futureTestCase = futureTestCase + [transition[1][1]] if transition[1][1] not in futureTestCase else futureTestCase"""
+                        if transition[0] == (f, -v):
+                            if transition[1][0] in currentTestCase and currentTestCase[transition[1][0]] == -1 * transition[1][1]:
+                                if transition[1][0] not in futureTestCase or futureTestCase[transition[1][0]] == 1 * transition[1][1]:
+                                    score += self.weight_lookahead
+                                    futureTestCase[transition[1][0]] = transition[1][1]
+
+                        if transition[1] == (f, -v):
+                            if transition[0][0] in currentTestCase and currentTestCase[transition[0][0]] == -1 * transition[0][1]:
+                                if transition[0][0] not in futureTestCase or futureTestCase[transition[0][0]] == 1 * transition[0][1]:
+                                    score += self.weight_lookahead
+                                    futureTestCase[transition[0][0]] = transition[0][1]
 
             scores.append(score)
         for score in scores:
@@ -306,7 +321,6 @@ class BuildingCTT:
     def computeSpecificSetToCover(self, specificTransitionCoverage):
         unCovTransitions = []
         unCovPairsCount = {}
-
         for transition in specificTransitionCoverage:
             # it's in the form : "((A, +1), (B, -1))"
             f1 = transition[0]

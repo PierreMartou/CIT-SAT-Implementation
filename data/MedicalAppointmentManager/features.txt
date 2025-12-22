@@ -1,0 +1,9 @@
+Feature/Mandatory/UserManagement-Status
+Feature/Optional/AutomaticRescheduling
+UserManagement/Mandatory/UserType-Profile
+UserType/Or/Patient-Practitioner-Admin
+Status/Alternative/Platinum-Gold-Basic
+Consultations/Mandatory/Mode-ConsultationType
+Mode/Alternative/Teleconsultation-FaceToFace
+ConsultationType/Optional/Ophtalmology-Psychiatry
+ConsultationType/Mandatory/GeneralPractice
