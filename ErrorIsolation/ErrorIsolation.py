@@ -343,6 +343,7 @@ class ErrorIsolation:
 
         if recompute or combination not in self.statistics_overall:
             all_suspects = self.get_all_suspects()
+            print(all_suspects)
             overall_suspects = self.get_overall_suspects(all_suspects)
 
             current_suspects = []
@@ -352,6 +353,8 @@ class ErrorIsolation:
             stop = 0
 
             while len(current_suspects) < nb_errors and stop < stopgap:
+                if len(overall_suspects)==0:
+                    print("WTF")
                 original_culprit = random.sample(overall_suspects, 1)[0]
                 step = self.find_step(original_culprit)
                 current_suspects = all_suspects[step-1]
