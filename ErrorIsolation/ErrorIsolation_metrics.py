@@ -58,8 +58,6 @@ def initialisation_isolation_metrics(max_iterations=5):
     storageAlts = "../data/SPLOT/SPLOT-NEW/SPLOT-Alts/"
     storageErrorIsolation = "../data/SPLOT/SPLOT-NEW/SPLOT-ErrorIsolation/default/"
 
-    result_file = "errorisolation.txt"
-
     nb_groups = {}
 
     average_cost = {}
@@ -102,9 +100,13 @@ def initialisation_isolation_metrics(max_iterations=5):
         verbose = False
         curr_nb_groups = 0
         curr_avg_suspects = 0
-        curr_avg_cost = 0
+        #curr_avg_cost = 0
         curr_steps = 0
-        size = len(s.getFeatures())
+
+        error_isolation = getErrorIsolation(tempStorageErrorIsolation, s, tempStorageCTT, tempstorageAlts, verbose=verbose)
+
+        all_suspects = error_isolation.get_all_suspects()
+        curr_avg_suspects += sum([len(s) for s in all_suspects]) / len(all_suspects)
 
         for iteration in range(max_iterations):
             print("\rComputing model " + str(quty) + "/" + str(total), iteration + 1, "/", max_iterations,
@@ -113,21 +115,16 @@ def initialisation_isolation_metrics(max_iterations=5):
             if verbose:
                 print("")
 
-            computedSuite = computeCTTSuite(tempStorageCTT, s, iteration=iteration)
-            curr_avg_cost += computedSuite.getCost()/computedSuite.getLength()
+            #computedSuite = computeCTTSuite(tempStorageCTT, s, iteration=iteration)
+            #curr_avg_cost += computedSuite.getCost()/computedSuite.getLength()
 
-            paths, undetectable = computeAlts(tempstorageAlts, s, computedSuite, iteration=iteration)
-            alts_cost = []
-            for p in paths:
-                if len(p) > 0:
-                    alts_cost.append(sum(t.getCost() for t in p)/len(p))
+            #paths, undetectable = computeAlts(tempstorageAlts, s, computedSuite, iteration=iteration)
+            #alts_cost = []
+            #for p in paths:
+            #    if len(p) > 0:
+            #       alts_cost.append(sum(t.getCost() for t in p)/len(p))
 
-            curr_avg_cost += sum(alts_cost)/len(alts_cost)
-
-            error_isolation = getErrorIsolation(tempStorageErrorIsolation, s, tempStorageCTT, tempstorageAlts, iteration=iteration, verbose=verbose)
-
-            all_suspects = error_isolation.get_all_suspects()
-            curr_avg_suspects += sum([len(s) for s in all_suspects])/len(all_suspects)
+            #curr_avg_cost += sum(alts_cost)/len(alts_cost)
 
             groups = error_isolation.get_groups(1)
 
@@ -144,22 +141,11 @@ def initialisation_isolation_metrics(max_iterations=5):
 
         #curr_statistics
 
-        if size in average_cost:
-            average_cost[size].append(curr_avg_cost/max_iterations)
-        else:
-            average_cost[size] = [curr_avg_cost/max_iterations]
+        #average_cost.setdefault(size, []).append(curr_avg_cost / max_iterations)
+        average_suspects.setdefault(nb_features, []).append(curr_avg_suspects / max_iterations)
+        average_steps.setdefault(nb_features, []).append(curr_steps / max_iterations)
 
-        if size in average_suspects:
-            average_suspects[size].append(curr_avg_suspects / max_iterations)
-        else:
-            average_suspects[size] = [curr_avg_suspects / max_iterations]
-
-        if size in average_steps:
-            average_steps[size].append(curr_steps / max_iterations)
-        else:
-            average_steps[size] = [curr_steps / max_iterations]
-
-        print(average_steps)
+        # print(average_steps)
 
         result = curr_nb_groups/max_iterations
         if nb_features in nb_groups:
@@ -175,6 +161,107 @@ def initialisation_isolation_metrics(max_iterations=5):
     r2_score(average_steps, degree=1)
 
     plot_dict_with_regression(average_steps, "Average number of steps", degree=1)
+
+def overall_isolation_metrics(max_iterations = 5):
+    modelFiles = "../data/SPLOT/SPLOT-NEW/SPLOT-txt/"
+    constraintsFiles = "../data/SPLOT/SPLOT-NEW/SPLOT-txtconstraints/"
+    storageCTT = "../data/SPLOT/SPLOT-NEW/SPLOT-TestSuitesCTT/"
+    storageAlts = "../data/SPLOT/SPLOT-NEW/SPLOT-Alts/"
+    storageErrorIsolation = "../data/SPLOT/SPLOT-NEW/SPLOT-ErrorIsolation/default/"
+
+    all_statistics = {}
+
+    nb_errors = [1, 2, 3]
+
+    quty = 0
+    stopping = 300
+    total = getNumberOfSPLOTModels()
+    print("Computing model " + "0" + "/" + str(total) + " (category: " + str("all") + ")", flush=True, end='')
+
+    for filename in os.listdir(modelFiles):
+        quty += 1
+        if quty > stopping:
+            break
+        txt = os.path.join(modelFiles, filename)
+        txtConstraints = os.path.join(constraintsFiles, filename)
+        s = SystemData(featuresFile=txt, extraConstraints=txtConstraints)
+
+        nb_features = len(s.getFeatures())
+
+        tempStorageCTT = storageCTT + filename[:-4] + "-1&2&3-"
+        tempstorageAlts = storageAlts + filename[:-4]
+        tempStorageErrorIsolation = storageErrorIsolation + filename[:-4]
+
+        verbose = False
+        curr_statistics = ErrorIsolationStatistics()
+
+        error_isolation = getErrorIsolation(tempStorageErrorIsolation, s, tempStorageCTT, tempstorageAlts,
+                                            verbose=verbose)
+
+        for iteration in range(max_iterations):
+            print("\rComputing model " + str(quty) + "/" + str(total), iteration + 1, "/", max_iterations,
+                  " (category: " + str("all, size: ") + str(len(s.getFeatures())) + "), model " + str(filename),
+                  flush=True, end='')
+
+            new_statistics = error_isolation.get_overall_statistics(nb_errors=1, iteration=iteration, states=10, recompute=False)
+
+            if new_statistics.divides == 0:
+                print("here: ", filename)
+            curr_statistics = curr_statistics + new_statistics
+
+        # curr_statistics
+        curr_statistics.normalise(max_iterations)
+        all_statistics.setdefault(nb_features, []).append(curr_statistics)
+
+
+    # plot_dict_with_regression(average_cost, "Average number of (de)activations", degree=1)
+
+    all_steps = aggregate_data(all_statistics, key="steps")
+
+    r2_score(all_steps, degree=2)
+    r2_score(all_steps, degree=1)
+
+    plot_dict_with_regression(all_steps, "Average number of steps", degree=1)
+
+def MAM_group_metrics(max_iterations=10):
+    models = "../data/MedicalAppointmentManager/"
+    s = SystemData(featuresFile=models + 'features.txt')
+    storage = models + "TestSuitesCTT/"
+    altsStorage = models + "AlternativePaths/alts"
+    normal_storageErrorIsolation = models + "ErrorIsolation/"
+    unique_storageErrorIsolation = models + "ErrorIsolation_1group/"
+
+    nb_groups = []
+    all_statistics_normal = ErrorIsolationStatistics()
+    all_statistics_unique = ErrorIsolationStatistics()
+    all_statistics_Xrandom = ErrorIsolationStatistics()
+
+    print("Computing model MAM, iteration: 0", flush=True, end='')
+
+    for iteration in range(max_iterations):
+        print("\rComputing model MAM, iteration: ", iteration, "/", max_iterations, flush=True, end='')
+        #normal execution
+        error_isolation = getErrorIsolation(normal_storageErrorIsolation, s, storage, altsStorage, iteration)
+
+        new_statistics = error_isolation.get_overall_statistics(nb_errors=1, iteration=0, states=10,
+                                                                recompute=False)
+
+        if new_statistics.divides == 0:
+            print("here: ", models)
+
+        all_statistics_normal += new_statistics
+
+        unique_error_isolation = getErrorIsolation(normal_storageErrorIsolation, s, storage, altsStorage, iteration, group_mode="unique")
+        unique_new_statistics = unique_error_isolation.get_overall_statistics(nb_errors=1, iteration=0, states=10,
+                                                                recompute=False)
+        all_statistics_unique += unique_new_statistics
+
+    all_statistics_normal.normalise(max_iterations)
+
+
+
+
+
 
 
 def r2_score(y_true, degree=2):
@@ -196,13 +283,16 @@ def r2_score(y_true, degree=2):
 
     print(f"(degree {degree}) R² = {r2:.3f}")
 
-def aggregate_data(data, step=10):
+def aggregate_data(data, step=10, key=None):
     new_average_suspects = {}
     for i in range(0, 100, step):
         aggregation = []
         for j in range(i, i + step):
             if j in data:
-                aggregation = aggregation + data[j]
+                if key is None:
+                    aggregation.extend(data[j])
+                else:
+                    aggregation.extend(getattr(x, key) for x in data[j])
         if len(aggregation) > 0:
             new_average_suspects[i + 2] = sum(aggregation) / len(aggregation)
 
@@ -244,5 +334,7 @@ if __name__ == '__main__':
     sys.modules['SystemData'] = utils.SystemData
     sys.modules['TestSuite'] = utils.TestSuite
     #sys.modules['ErrorIsolation_Data'] = ErrorIsolation
-    initialisation_isolation_metrics(max_iterations=1)
+
+    #initialisation_isolation_metrics(max_iterations=1)
+    overall_isolation_metrics(5)
 
