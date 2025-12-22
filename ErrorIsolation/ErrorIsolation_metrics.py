@@ -228,15 +228,17 @@ def overall_isolation_metrics(max_iterations = 5, group_mode = None):
     plot_dict_with_regression(all_steps, "Average number of steps", degree=1)
 
 def MAM_group_metrics(max_iterations=10):
-    max_repetitions = 10
+    max_repetitions = 5
     models = "../data/MedicalAppointmentManager/"
     s = SystemData(featuresFile=models + 'features.txt')
     storage = models + "TestSuitesCTT/"
     altsStorage = models + "AlternativePaths/alts"
     normal_storageErrorIsolation = models + "ErrorIsolation/normal/"
     random_storageErrorIsolation = models + "ErrorIsolation/random/"
+    optimised_storageErrorIsolation = models + 'ErrorIsolation/optimised/o'
 
     normal_statistics = ErrorIsolationStatistics()
+    optimised_statistics = ErrorIsolationStatistics()
 
     max_groups = 11
     random_statistics = {i: ErrorIsolationStatistics() for i in range(1, max_groups)}
@@ -249,10 +251,18 @@ def MAM_group_metrics(max_iterations=10):
         error_isolation = getErrorIsolation(normal_storageErrorIsolation, s, storage, altsStorage, iteration,
                                             group_mode=None)
 
+        optimised_error_isolation = getErrorIsolation(optimised_storageErrorIsolation, s, storage, altsStorage, iteration,
+                                            group_mode=-2)
+
         for repetition in range(max_repetitions):
             new_statistics = error_isolation.get_overall_statistics(nb_errors=1, iteration=repetition, states=10,
-                                                                    recompute=True)
+                                                                    recompute=False)
             normal_statistics += new_statistics
+
+            new_statistics = optimised_error_isolation.get_overall_statistics(nb_errors=1, iteration=repetition, states=10,
+                                                                    recompute=False)
+            optimised_statistics += new_statistics
+
             #print("normal, steps : ", new_statistics.step_number)
             #print("current amount of step number : ", normal_statistics.step_number)
         for i in range(1, max_groups):
@@ -265,6 +275,8 @@ def MAM_group_metrics(max_iterations=10):
                 random_statistics[i] += new_statistics
 
     normal_statistics.normalise(max_iterations*max_repetitions)
+    optimised_statistics.normalise(max_iterations*max_repetitions)
+    print("")
     for key in random_statistics:
         random_statistics[key].normalise(max_iterations*max_repetitions)
         print(key, " : ", random_statistics[key])
@@ -272,6 +284,7 @@ def MAM_group_metrics(max_iterations=10):
     all_steps = {key: random_statistics[key].steps for key in random_statistics}
 
     print("normal : ", normal_statistics)
+    print("optimised : ", optimised_statistics)
 
     r2_score(all_steps, degree=2)
     r2_score(all_steps, degree=1)
@@ -354,8 +367,6 @@ def r2_score(y_true, degree=2):
 
     y_hat = poly(x)
 
-    print(y_hat)
-
     ss_res = np.sum((y - y_hat) ** 2)
     ss_tot = np.sum((y - np.mean(y)) ** 2)
 
@@ -421,6 +432,6 @@ if __name__ == '__main__':
     #sys.modules['ErrorIsolation_Data'] = ErrorIsolation
 
     #initialisation_isolation_metrics(max_iterations=1)
-    overall_isolation_metrics(2, group_mode=1)
-    #MAM_group_metrics()
+    #overall_isolation_metrics(2, group_mode=1)
+    MAM_group_metrics(5)
 

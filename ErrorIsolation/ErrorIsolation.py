@@ -108,21 +108,33 @@ class ErrorIsolation:
         if not hasattr(self, "group_mode"):
             self.group_mode = None
 
-        suspects = self.get_suspects(step).copy() if self.get_suspects(step) is not None else None
+        suspects = self.get_suspects(step).copy()
 
         if suspects is None:
             return None
 
-        if self.group_mode is None:
+        if self.group_mode is None or self.group_mode == -2:
             # initialising groups of suspects
             groups = []
-
+            limit = 0
+            if self.group_mode == -2:
+                limit = self.states
             while suspects:
-                t = BuildingCTT(self.s, verbose=False, limit=0, numCandidates=1, specificTransitionCoverage=suspects)
+                t = BuildingCTT(self.s, verbose=False, limit=limit, numCandidates=2, specificTransitionCoverage=suspects)
                 testSuite = TestSuite(self.s, t.getCoveringArray(), limit=0)
-                config = testSuite.getUnorderedTestSuite()[0]
-                group = [s for s in suspects if self.transition_is_possible(s, config)]
-                suspects = [s for s in suspects if s not in group]
+
+                if self.group_mode is None:
+                    config = testSuite.getUnorderedTestSuite()[0]
+                    group = [s for s in suspects if self.transition_is_possible(s, config)]
+                    suspects = [s for s in suspects if s not in group]
+                else:
+                    if len(testSuite.getUnorderedTestSuite()) == 0:
+                        print("HERE")
+                        exit()
+                    covered = testSuite.transitionPairCoverage(simplified=True)
+                    group = [s for s in suspects if s in covered]
+                    suspects = [s for s in suspects if s not in group]
+
                 groups.append(group)
 
             self.groups[step] = groups

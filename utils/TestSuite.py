@@ -209,8 +209,8 @@ class TestSuite:
         return interactionEvolution, transitionEvolution, switchesEvolution
 
     # Computes all transitions covered in this test suite, with the order being specified.
-    def transitionPairCoverage(self, mode):
-        if len(self.suiteMinimized) < 2:
+    def transitionPairCoverage(self, mode="unordered", simplified=False):
+        if len(self.suiteUnordered) < 2:
             print("There are no transitions in a test suite with only one configuration.")
             return []
 
@@ -218,7 +218,6 @@ class TestSuite:
             print("Please provide a mode when computing transition pairs coverage.")
 
         transitions = []
-        suite = self.suiteRandomOrder
         if mode == "minimized":
             #if self.suiteMinimized is None:
             #    self.computeAllRearrangements()
@@ -230,7 +229,7 @@ class TestSuite:
         elif mode == "dissimilarity":
             suite = self.suiteMaximized
         else:
-            print("The mode was not recognized.")
+            suite = self.suiteRandomOrder
 
         prev = suite[0]
         for test in suite[1:]:
@@ -241,9 +240,20 @@ class TestSuite:
                     changes.append((f, test[f]))
             for i in range(len(changes)):
                 for j in range(i+1, len(changes)):
-                    pair = (changes[i], changes[j])
-                    mirrorPair = (changes[j], changes[i])
-                    if pair not in transitions and mirrorPair not in transitions:
+                    f1 = changes[i] if changes[i][0] < changes[j][0] else changes[j]
+                    f2 = changes[j] if f1 == changes[i] else changes[i]
+                    if simplified:
+                        if f1[1] > 0:
+                            f1 = (f1[0], 1)
+                        else:
+                            f1 = (f1[0], -1)
+
+                        if f2[1] > 0:
+                            f2 = (f2[0], 1)
+                        else:
+                            f2 = (f2[0], -1)
+                    pair = (f1, f2)
+                    if pair not in transitions:
                         transitions.append(pair)
             prev = test
         return transitions
