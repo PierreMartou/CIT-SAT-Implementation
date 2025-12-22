@@ -125,12 +125,13 @@ class ErrorIsolation:
                 groups.append(group)
 
             self.groups[step] = groups
-        elif self.group_mode == "unique":
-            self.groups[step] = suspects
-        elif self.group_mode == "random":
+        elif self.group_mode == 1:
+            self.groups[step] = [suspects]
+        else:
             suspects = suspects.copy()
             random.shuffle(suspects)
-            nb_groups = math.ceil(len(self.s.getFeatures()) / 10)
+            #nb_groups = math.ceil(len(self.s.getFeatures()) / 10)
+            nb_groups = self.group_mode
 
             self.groups[step] = [
                 suspects[i::nb_groups]
@@ -147,10 +148,14 @@ class ErrorIsolation:
         number_of_clears = 0
         number_of_change = 0
         number_of_steps = 0
+        number_of_SMTcalls = 0
+        step_number = step
 
         uncoverableTransitions = []
 
         groups = self.get_groups(step).copy()
+
+        number_of_groups = len(groups)
         z3solver = OracleSolver(self.s, self.states, timeout=10000)
 
         startupConfig = None  # {f: -1 for f in self.s.getFeatures()}
@@ -176,12 +181,13 @@ class ErrorIsolation:
                                                                        s not in transitions_under_test],
                                                  mandatoryTransitions=transitions_under_test,
                                                  startupConfig=startupConfig)
-
+            number_of_SMTcalls += 1
             # Second path if the first didn't fail.
             if test_execution is not None:
                 init_config = None  # test_execution.getUnorderedTestSuite()[0]
                 alt_test_execution = z3solver.createPath(init_config, test_execution.getUnorderedTestSuite()[-1],
                                                          forbiddenTransitions=all_suspects)
+                number_of_SMTcalls += 1
             else:
                 alt_test_execution = None
 
@@ -213,7 +219,7 @@ class ErrorIsolation:
                         next_groups.append(transitions_under_test[round(len(transitions_under_test) / 2):])
                 else:
                     number_of_clears += 1
-        return ErrorIsolationStatistics(number_of_divides, number_of_fails, number_of_clears, number_of_change, number_of_steps)
+        return ErrorIsolationStatistics(number_of_divides, number_of_fails, number_of_clears, number_of_change, number_of_steps, number_of_SMTcalls, number_of_groups, step_number)
 
     def isolate_errors(self, step, nb_errors, states, verbose=True):
         all_suspects = self.get_suspects(step).copy()
@@ -411,12 +417,15 @@ class ErrorIsolation:
 
 
 class ErrorIsolationStatistics:
-    def __init__(self, divides=0, fails=0, clears=0, changes=0, steps=0):
+    def __init__(self, divides=0, fails=0, clears=0, changes=0, steps=0, SMTcalls=0, number_of_groups=0, step_number = 1):
         self.divides = self.average_list(divides)
         self.fails = self.average_list(fails)
         self.clears = self.average_list(clears)
         self.changes = self.average_list(changes)
         self.steps = self.average_list(steps)
+        self.SMTcalls = self.average_list(SMTcalls)
+        self.number_of_groups = self.average_list(number_of_groups)
+        self.step_number = self.average_list(step_number)
 
     def __add__(self, other):
         if not isinstance(other, ErrorIsolationStatistics):
@@ -428,6 +437,23 @@ class ErrorIsolationStatistics:
             self.clears + other.clears,
             self.changes + other.changes,
             self.steps + other.steps,
+            self.SMTcalls + other.SMTcalls,
+            self.number_of_groups + other.number_of_groups,
+            self.step_number + self.step_number,
+        )
+
+    def __str__(self):
+        return (
+            f"ErrorIsolationStatistics("
+            f"divides={self.divides}, "
+            f"fails={self.fails}, "
+            f"clears={self.clears}, "
+            f"changes={self.changes}, "
+            f"changes={self.steps}, "
+            f"changes={self.SMTcalls}, "
+            f"changes={self.number_of_groups}, "
+            f"steps={self.step_number}"
+            f")"
         )
 
     def normalise(self, iterations):
@@ -436,6 +462,9 @@ class ErrorIsolationStatistics:
         self.clears /= iterations
         self.changes /= iterations
         self.steps /= iterations
+        self.SMTcalls /= iterations
+        self.number_of_groups /= iterations
+        self.step_number /= iterations
 
     @staticmethod
     def average_list(l):
@@ -443,6 +472,7 @@ class ErrorIsolationStatistics:
             return sum(l)/len(l)
         else:
             return l
+
     """"@staticmethod
     def aggregate_steps(statistics):
         avg_step = 0

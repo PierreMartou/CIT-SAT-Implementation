@@ -108,7 +108,7 @@ def initialisation_isolation_metrics(max_iterations=5):
         all_suspects = error_isolation.get_all_suspects()
         curr_avg_suspects += sum([len(s) for s in all_suspects]) / len(all_suspects)
 
-        for iteration in range(max_iterations):
+        """for iteration in range(max_iterations):
             print("\rComputing model " + str(quty) + "/" + str(total), iteration + 1, "/", max_iterations,
                   " (category: " + str("all, size: ") + str(len(s.getFeatures())) + "), model " + str(filename), flush=True, end='')
 
@@ -136,7 +136,7 @@ def initialisation_isolation_metrics(max_iterations=5):
             curr_steps += sum(all_steps)/len(all_steps)
 
             if groups is not None:
-                curr_nb_groups += len(groups)
+                curr_nb_groups += len(groups)"""
 
 
         #curr_statistics
@@ -155,12 +155,12 @@ def initialisation_isolation_metrics(max_iterations=5):
 
     #plot_dict_with_regression(average_cost, "Average number of (de)activations", degree=1)
 
-    average_steps = aggregate_data(average_cost)
+    average_suspects = aggregate_data(average_suspects)
 
-    r2_score(average_steps)
-    r2_score(average_steps, degree=1)
+    r2_score(average_suspects)
+    r2_score(average_suspects, degree=1)
 
-    plot_dict_with_regression(average_steps, "Average number of steps", degree=1)
+    plot_dict_with_regression(average_suspects, "Average number of suspects", degree=1)
 
 def overall_isolation_metrics(max_iterations = 5):
     modelFiles = "../data/SPLOT/SPLOT-NEW/SPLOT-txt/"
@@ -224,45 +224,48 @@ def overall_isolation_metrics(max_iterations = 5):
     plot_dict_with_regression(all_steps, "Average number of steps", degree=1)
 
 def MAM_group_metrics(max_iterations=10):
+    max_repetitions = 3
     models = "../data/MedicalAppointmentManager/"
     s = SystemData(featuresFile=models + 'features.txt')
     storage = models + "TestSuitesCTT/"
     altsStorage = models + "AlternativePaths/alts"
-    normal_storageErrorIsolation = models + "ErrorIsolation/"
-    unique_storageErrorIsolation = models + "ErrorIsolation_1group/"
+    normal_storageErrorIsolation = models + "ErrorIsolation/normal/"
+    random_storageErrorIsolation = models + "ErrorIsolation/random/"
 
-    nb_groups = []
-    all_statistics_normal = ErrorIsolationStatistics()
-    all_statistics_unique = ErrorIsolationStatistics()
-    all_statistics_Xrandom = ErrorIsolationStatistics()
+    normal_statistics = ErrorIsolationStatistics()
+
+    max_groups = 10
+    random_statistics = {i: ErrorIsolationStatistics() for i in range(max_groups)}
 
     print("Computing model MAM, iteration: 0", flush=True, end='')
 
     for iteration in range(max_iterations):
         print("\rComputing model MAM, iteration: ", iteration, "/", max_iterations, flush=True, end='')
-        #normal execution
-        error_isolation = getErrorIsolation(normal_storageErrorIsolation, s, storage, altsStorage, iteration)
 
-        new_statistics = error_isolation.get_overall_statistics(nb_errors=1, iteration=0, states=10,
-                                                                recompute=False)
+        error_isolation = getErrorIsolation(normal_storageErrorIsolation, s, storage, altsStorage, iteration,
+                                            group_mode=None)
 
-        if new_statistics.divides == 0:
-            print("here: ", models)
+        for repetition in range(max_repetitions):
+            new_statistics = error_isolation.get_overall_statistics(nb_errors=1, iteration=repetition, states=10,
+                                                                    recompute=False)
+            normal_statistics += new_statistics
 
-        all_statistics_normal += new_statistics
+        for i in range(max_groups):
+            error_isolation = getErrorIsolation(random_storageErrorIsolation+str(i)+"groups_", s, storage, altsStorage, iteration,
+                                                group_mode=i)
 
-        unique_error_isolation = getErrorIsolation(normal_storageErrorIsolation, s, storage, altsStorage, iteration, group_mode="unique")
-        unique_new_statistics = unique_error_isolation.get_overall_statistics(nb_errors=1, iteration=0, states=10,
-                                                                recompute=False)
-        all_statistics_unique += unique_new_statistics
+            for repetition in range(max_repetitions):
+                new_statistics = error_isolation.get_overall_statistics(nb_errors=1, iteration=repetition, states=10,
+                                                                        recompute=False)
+                random_statistics[i] += new_statistics
 
-    all_statistics_normal.normalise(max_iterations)
+    normal_statistics.normalise(max_iterations*max_repetitions)
+    for key in random_statistics:
+        random_statistics[key].normalise(max_iterations*max_repetitions)
 
+    print(normal_statistics)
 
-
-
-
-
+    print(random_statistics)
 
 def r2_score(y_true, degree=2):
     print(y_true)
@@ -323,8 +326,13 @@ def plot_dict_with_regression(d, label, degree=2):
     # Interpolated curve
     plt.plot(x_dense, y_dense, label=f"Regression curve")
 
-    plt.xlabel("Number of features")
-    plt.ylabel(label)
+    plt.xlabel("Number of features", fontsize=18)
+    plt.ylabel(label, fontsize=18)
+
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.legend(fontsize=14)
+
     plt.legend()
     plt.grid(True)
     plt.show()
@@ -336,5 +344,6 @@ if __name__ == '__main__':
     #sys.modules['ErrorIsolation_Data'] = ErrorIsolation
 
     #initialisation_isolation_metrics(max_iterations=1)
-    overall_isolation_metrics(5)
+    overall_isolation_metrics(1)
+    MAM_group_metrics()
 
