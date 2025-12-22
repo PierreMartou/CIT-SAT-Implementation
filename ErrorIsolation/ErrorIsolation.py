@@ -226,7 +226,7 @@ class ErrorIsolation:
         combination = (step, nb_errors, states)
 
         if len(all_suspects) == 0:
-            self.statistics[combination] = ErrorIsolationStatistics(0, 0, 0, 0, 0)
+            self.statistics[combination] = ErrorIsolationStatistics()
             return
 
         culprits = random.sample(all_suspects, nb_errors)
@@ -417,7 +417,7 @@ class ErrorIsolation:
 
 
 class ErrorIsolationStatistics:
-    def __init__(self, divides=0, fails=0, clears=0, changes=0, steps=0, SMTcalls=0, number_of_groups=0, step_number = 1):
+    def __init__(self, divides=0, fails=0, clears=0, changes=0, steps=0, SMTcalls=0, number_of_groups=0, step_number=0):
         self.divides = self.average_list(divides)
         self.fails = self.average_list(fails)
         self.clears = self.average_list(clears)
@@ -449,10 +449,10 @@ class ErrorIsolationStatistics:
             f"fails={self.fails}, "
             f"clears={self.clears}, "
             f"changes={self.changes}, "
-            f"changes={self.steps}, "
-            f"changes={self.SMTcalls}, "
-            f"changes={self.number_of_groups}, "
-            f"steps={self.step_number}"
+            f"steps={self.steps}, "
+            f"SMTcalls={self.SMTcalls}, "
+            f"nb_of_groups={self.number_of_groups}, "
+            f"step_number={self.step_number}"
             f")"
         )
 
