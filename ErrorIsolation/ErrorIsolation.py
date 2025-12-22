@@ -10,7 +10,8 @@ import random
 from TestOracle.OracleSolver import OracleSolver
 
 def getErrorIsolation(fpath, s, storageCTT, storageAlts, iteration=0, states=10, recompute=False, recomputeSuites=False, group_mode = None, verbose=False):
-    version = "1.0.0"
+    # 1.1 added a filter on all suspects when a group is cleared.
+    version = "1.1.0"
     file_path = fpath + "-" + str(iteration) + ".pkl"
 
     if os.path.exists(file_path) and not recompute:
@@ -127,6 +128,18 @@ class ErrorIsolation:
             self.groups[step] = groups
         elif self.group_mode == 1:
             self.groups[step] = [suspects]
+        elif self.group_mode == -1:
+            groups = []
+            oppositeSuspects = suspects.copy()
+            oppositeSuspects = [((t[0][0], -1*t[0][1]), (t[1][0], -1*t[1][1])) for t in oppositeSuspects]
+            while oppositeSuspects:
+                t = BuildingCTT(self.s, verbose=False, limit=0, numCandidates=1, specificTransitionCoverage=oppositeSuspects)
+                testSuite = TestSuite(self.s, t.getCoveringArray(), limit=0)
+                config = testSuite.getUnorderedTestSuite()[0]
+                group = [s for s in oppositeSuspects if self.transition_is_possible(s, config)]
+                oppositeSuspects = [s for s in oppositeSuspects if s not in group]
+                groups.append(group)
+
         else:
             suspects = suspects.copy()
             random.shuffle(suspects)
@@ -142,7 +155,8 @@ class ErrorIsolation:
         self.save()
         return self.groups[step]
 
-    def generate_paths(self, step, culprits, all_suspects):
+    def generate_paths(self, step, culprits, all_suspects_input):
+        all_suspects = all_suspects_input.copy()
         number_of_divides = 0
         number_of_fails = 0
         number_of_clears = 0
@@ -150,19 +164,28 @@ class ErrorIsolation:
         number_of_steps = 0
         number_of_SMTcalls = 0
         step_number = step
-
         uncoverableTransitions = []
 
         groups = self.get_groups(step).copy()
 
         number_of_groups = len(groups)
-        z3solver = OracleSolver(self.s, self.states, timeout=10000)
+        z3solver = OracleSolver(self.s, self.states, timeout=1000)
 
         startupConfig = None  # {f: -1 for f in self.s.getFeatures()}
         unsolvable_waiting_list = []
         next_groups = []
         groups.sort(key=len)
+
+        localverbose = False
+        total = str(len(all_suspects))
+        if len(self.s.getFeatures()) > 70:
+            localverbose = True
+            print("")
+            print("Suspect transitions left: " + str(len(all_suspects)) + "/" + total, flush=True, end='')
+
         while groups or unsolvable_waiting_list or next_groups:
+            if localverbose:
+                print("\rSuspect transitions left: " + str(len(all_suspects)) + "/" + total, flush=True, end='')
             if len(groups) == 0:
                 groups = next_groups
                 next_groups = []
@@ -218,6 +241,7 @@ class ErrorIsolation:
                         next_groups.append(transitions_under_test[:round(len(transitions_under_test) / 2)])
                         next_groups.append(transitions_under_test[round(len(transitions_under_test) / 2):])
                 else:
+                    all_suspects = [s for s in all_suspects if s not in transitions_under_test]
                     number_of_clears += 1
         return ErrorIsolationStatistics(number_of_divides, number_of_fails, number_of_clears, number_of_change, number_of_steps, number_of_SMTcalls, number_of_groups, step_number)
 
@@ -343,7 +367,6 @@ class ErrorIsolation:
 
         if recompute or combination not in self.statistics_overall:
             all_suspects = self.get_all_suspects()
-            print(all_suspects)
             overall_suspects = self.get_overall_suspects(all_suspects)
 
             current_suspects = []
@@ -367,15 +390,12 @@ class ErrorIsolation:
             if stop == stopgap:
                 self.statistics_overall[combination] = None
             else:
-
-
                 culprits = [original_culprit]
 
                 while len(culprits) < nb_errors:
                     new_culprit = random.sample(current_suspects, 1)
                     if new_culprit not in culprits:
                         culprits.append(new_culprit)
-
                 curr_statistics = self.generate_paths(step, culprits, current_suspects)
                 self.statistics_overall[combination] = curr_statistics
 
@@ -442,7 +462,7 @@ class ErrorIsolationStatistics:
             self.steps + other.steps,
             self.SMTcalls + other.SMTcalls,
             self.number_of_groups + other.number_of_groups,
-            self.step_number + self.step_number,
+            self.step_number + other.step_number,
         )
 
     def __str__(self):
