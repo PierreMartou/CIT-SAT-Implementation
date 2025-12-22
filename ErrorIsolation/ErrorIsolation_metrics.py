@@ -131,9 +131,11 @@ def initialisation_isolation_metrics(max_iterations=5):
 
             groups = error_isolation.get_groups(1)
 
-            #all_steps = error_isolation.get_all_statistics(nb_errors=[1], states=[6])
-            all_steps = [error_isolation.get_statistics(1, 1, 10)]
-            all_steps = [stat.steps for stat in all_steps]
+            all_stats = error_isolation.get_all_statistics(nb_errors=[1], states=[10])
+            #all_steps = [error_isolation.get_statistics(1, 1, 10)]
+            all_steps = []
+            for key in all_stats:
+                all_steps.append(all_stats[key].steps)
             curr_steps += sum(all_steps)/len(all_steps)
 
             if groups is not None:
@@ -157,6 +159,8 @@ def initialisation_isolation_metrics(max_iterations=5):
         else:
             average_steps[size] = [curr_steps / max_iterations]
 
+        print(average_steps)
+
         result = curr_nb_groups/max_iterations
         if nb_features in nb_groups:
             nb_groups[nb_features] = nb_groups[nb_features] + [result]
@@ -165,12 +169,12 @@ def initialisation_isolation_metrics(max_iterations=5):
 
     #plot_dict_with_regression(average_cost, "Average number of (de)activations", degree=1)
 
-    average_cost = aggregate_data(average_cost)
+    average_steps = aggregate_data(average_cost)
 
-    r2_score(average_cost)
-    r2_score(average_cost, degree=1)
+    r2_score(average_steps)
+    r2_score(average_steps, degree=1)
 
-    plot_dict_with_regression(average_cost, "Average number of (de)activations", degree=2)
+    plot_dict_with_regression(average_steps, "Average number of steps", degree=1)
 
 
 def r2_score(y_true, degree=2):
