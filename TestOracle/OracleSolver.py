@@ -132,7 +132,7 @@ class OracleSolver:
                 #self.solver.assert_exprs(Not(featureStates[f]))
 
 
-    def createPath(self, initConfig, finalConfig, forbiddenTransitions, satisOnly=False, mandatoryTransitions = None, startupConfig=None):
+    def createPath(self, initConfig, finalConfig, forbiddenTransitions, satisOnly=False, mandatoryTransitions = None, startupConfig=None, showClauses=False):
         self.solver.pop()
         self.solver.push()
         # add initial configuration to constraints

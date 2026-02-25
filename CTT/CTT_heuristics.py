@@ -23,6 +23,7 @@ class BuildingCTT:
 
         self.coveringArray = []
         self.numTests = 0
+        self.factors = list(self.valuesForFactors.keys())
         if not specificTransitionCoverage:
             self.unCovSets, self.unCovTransitions, self.unCovPairsCount = self.computeSetToCover()
         else:
@@ -32,7 +33,6 @@ class BuildingCTT:
             print("Number of uncovered interactions and transitions : " + str(len(self.unCovSets)) + " - " + str(len(self.unCovTransitions)))
         self.totalNumberOfPairs = len(self.unCovSets) + len(self.unCovTransitions)
         # self.unCovSets, self.unCovTransitions, self.unCovPairsCount = self.computeSetToCover("basic")
-        self.factors = list(self.valuesForFactors.keys())
 
     def computeScores(self, prevTestCase):
         tempUnCovPairsCnt = self.unCovPairsCount.copy()
@@ -340,7 +340,8 @@ class BuildingCTT:
                     unCovPairsCount[pair2] += 1
 
                 if self.solver.checkSAT([-1*pair1[1], -1*pair2[1]]):
-                    unCovTransitions.append([pair1, pair2])
+
+                    unCovTransitions.append(self.orderedSet([pair1, pair2]))
                 else:
                     print("ERROR: A transition in the specific transition coverage is not valid !")
             else:

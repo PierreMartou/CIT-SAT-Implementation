@@ -234,7 +234,7 @@ class TestSuite:
         prev = suite[0]
         for test in suite[1:]:
             changes = []
-            for f in self.variabilities:
+            for f in prev:
                 if prev[f] != test[f]:
                     #sign = "+" if test[f] > 0 else "-"
                     changes.append((f, test[f]))

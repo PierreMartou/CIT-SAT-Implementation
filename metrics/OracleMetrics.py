@@ -37,16 +37,16 @@ def printOriginalVsAlterativePaths(originalTestSuite, alternatives):
             print(t)
 
 
-def RISpath():
+def running_example_path():
     #models = "../data/RIS-FOP/"
     models = "../data/MedicalAppointmentManager/"
     s = SystemData(featuresFile=models + 'features.txt')
     storage = models + "TestSuitesCTT/runningexample"
     altsStorage = models + "AlternativePaths/runningexample-alts"
     iteration = 1
-    testsuite = computeCTTSuite(storage, s, iteration, recompute=False, verbose=True)
+    testsuite = computeCTTSuite(storage, s, iteration, recompute=True, verbose=True)
     #testsuite.printLatexTransitionForm()
-    paths, undetectables = computeAlts(altsStorage, s, testsuite.getUnorderedTestSuite(), iteration, states=4, recompute=False)
+    paths, undetectables = computeAlts(altsStorage, s, testsuite.getUnorderedTestSuite(), iteration, states=6, recompute=True)
     printOriginalVsAlterativePaths(testsuite, paths)
 
     lengthAndCost = [t.getShortenedLengthAndCost() for p in paths for t in p]
@@ -190,9 +190,9 @@ if __name__ == '__main__':
             done += 1
             f.result()
         print("done :", done)"""
-    for c in categories:
-        oracleSPLOTmetrics(c, [6], recompute=False, verbose=True)
+    #for c in categories:
+    #    oracleSPLOTmetrics(c, [6], recompute=False, verbose=True)
 
     #for r in categories:
     #    oracleSPLOTmetrics(r, [6], recompute=False, verbose=True)
-    #RISpath()
+    running_example_path()

@@ -210,15 +210,38 @@ def transitionIsPossible(transition, initialState):
 
 if __name__ == '__main__':
 
-    deactivations = ["Basic", "Admin"]
-    activations = ["Practitioner", "Consultations", "Gold", "GeneralPractice", "Mode", "Ophtalmology", "Patient", "Psychiatry", "ConsultationType", "Teleconsultation", "AutomaticRescheduling"]
+    deactivations = [
+        "Mode",
+        "Ophtalmology",
+        "Consultations",
+        "Platinum",
+        "FaceToFace",
+        "Psychiatry",
+        "AutomaticRescheduling",
+        "Patient",
+        "ConsultationType",
+        "GeneralPractice",
+        "Admin",
+    ]
+    activations = [
+        "Practitioner",
+        "Gold",
+    ]
+    tr_1 = all_combinations(activations, deactivations)
 
-    tr = all_combinations(activations, deactivations)
+    +1
+
+
+
     toPrint = ""
     for t in tr:
         firstsign = "+" if t[0][1] > 0 else "-"
         secondsign = "+" if t[1][1] > 0 else "-"
         toPrint += "$\mid$" + firstsign + t[0][0] + ", " + secondsign + t[1][0] + "$\mid$" + "; "
+
+
+
+
 
     print(toPrint)
     print(len(tr))

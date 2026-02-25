@@ -118,11 +118,11 @@ class ErrorIsolation:
             groups = []
             limit = 0
             if self.group_mode == -2:
-                limit = self.states
+                limit = math.ceil((self.states-1)/2.0)
             while suspects:
-                t = BuildingCTT(self.s, verbose=False, limit=limit, numCandidates=2, specificTransitionCoverage=suspects)
-                testSuite = TestSuite(self.s, t.getCoveringArray(), limit=0)
-
+                t = BuildingCTT(self.s, verbose=False, limit=limit, numCandidates=3, specificTransitionCoverage=suspects)
+                testSuite = TestSuite(self.s, t.getCoveringArray(), limit=limit)
+                debugTestSuite = testSuite.getUnorderedTestSuite()
                 if self.group_mode is None:
                     config = testSuite.getUnorderedTestSuite()[0]
                     group = [s for s in suspects if self.transition_is_possible(s, config)]
@@ -133,6 +133,8 @@ class ErrorIsolation:
                         exit()
                     covered = testSuite.transitionPairCoverage(simplified=True)
                     group = [s for s in suspects if s in covered]
+                    if len(group) == 0:
+                        print("PROBLEM HERE TOO")
                     suspects = [s for s in suspects if s not in group]
 
                 groups.append(group)
@@ -181,7 +183,7 @@ class ErrorIsolation:
         groups = self.get_groups(step).copy()
 
         number_of_groups = len(groups)
-        z3solver = OracleSolver(self.s, self.states, timeout=1000)
+        z3solver = OracleSolver(self.s, self.states, timeout=10000)
 
         startupConfig = None  # {f: -1 for f in self.s.getFeatures()}
         unsolvable_waiting_list = []
@@ -215,7 +217,7 @@ class ErrorIsolation:
                                                  forbiddenTransitions=[s for s in all_suspects if
                                                                        s not in transitions_under_test],
                                                  mandatoryTransitions=transitions_under_test,
-                                                 startupConfig=startupConfig)
+                                                 startupConfig=startupConfig, showClauses=True)
             number_of_SMTcalls += 1
             # Second path if the first didn't fail.
             if test_execution is not None:
@@ -351,10 +353,24 @@ class ErrorIsolation:
             all_suspects.append(self.get_suspects(i))
         return all_suspects
 
+    def propagate_overall_stats(self, step, nb_errors, nb_state):
+        for i in range(10):
+            adjusted_combination = (nb_errors, i, nb_state)
+
+            if adjusted_combination in self.statistics_overall:
+                if self.statistics_overall[adjusted_combination].step_number == step:
+                    return self.statistics_overall[adjusted_combination]
+        return None
+
     def get_statistics(self, step, nb_errors, nb_state):
         combination = (step, nb_errors, nb_state)
         if combination not in self.statistics or self.statistics[combination] is None:
-            self.isolate_errors(step, nb_errors, nb_state)
+            prop_test = self.propagate_overall_stats(step, nb_errors, nb_state)
+
+            if prop_test is not None:
+                self.statistics[combination] = prop_test
+            else:
+                self.isolate_errors(step, nb_errors, nb_state)
             self.save()
 
         return self.statistics[combination]
@@ -371,48 +387,51 @@ class ErrorIsolation:
 
         return toReturn
 
-    def get_overall_statistics(self, nb_errors=1, iteration=0, states=10, recompute=False):
+    def get_overall_statistics(self, nb_errors=1, iteration=0, states=10, recompute=False, only_if_exists=False):
         combination = (nb_errors, iteration, states)
 
         if not hasattr(self, 'statistics_overall'):
             self.statistics_overall = {}
 
-        if recompute or combination not in self.statistics_overall:
-            all_suspects = self.get_all_suspects()
-            overall_suspects = self.get_overall_suspects(all_suspects)
+        if not only_if_exists:
+            if recompute or combination not in self.statistics_overall:
+                all_suspects = self.get_all_suspects()
+                overall_suspects = self.get_overall_suspects(all_suspects)
 
-            current_suspects = []
-            original_culprit = None
-            step = 0
-            stopgap = 10
-            stop = 0
+                current_suspects = []
+                original_culprit = None
+                step = 0
+                stopgap = 10
+                stop = 0
 
-            while len(current_suspects) < nb_errors and stop < stopgap:
-                if len(overall_suspects)==0:
-                    print("WTF")
-                original_culprit = random.sample(overall_suspects, 1)[0]
-                step = self.find_step(original_culprit)
-                current_suspects = all_suspects[step-1]
-                stop += 1
-                if step > 1:
-                    previously_cleared_transitions = self.get_overall_suspects(all_suspects[:step-1])
-                    current_suspects = [s for s in current_suspects if s not in previously_cleared_transitions]
+                while len(current_suspects) < nb_errors and stop < stopgap:
+                    if len(overall_suspects)==0:
+                        print("WTF")
+                    original_culprit = random.sample(overall_suspects, 1)[0]
+                    step = self.find_step(original_culprit)
+                    current_suspects = all_suspects[step-1]
+                    stop += 1
+                    if step > 1:
+                        previously_cleared_transitions = self.get_overall_suspects(all_suspects[:step-1])
+                        current_suspects = [s for s in current_suspects if s not in previously_cleared_transitions]
 
-            # there is no path where the number of suspects is higher than the number of errors, so it's impossible to compute.
-            if stop == stopgap:
-                self.statistics_overall[combination] = None
-            else:
-                culprits = [original_culprit]
+                # there is no path where the number of suspects is higher than the number of errors, so it's impossible to compute.
+                if stop == stopgap:
+                    self.statistics_overall[combination] = None
+                else:
+                    culprits = [original_culprit]
 
-                while len(culprits) < nb_errors:
-                    new_culprit = random.sample(current_suspects, 1)
-                    if new_culprit not in culprits:
-                        culprits.append(new_culprit)
-                curr_statistics = self.generate_paths(step, culprits, current_suspects)
-                self.statistics_overall[combination] = curr_statistics
+                    while len(culprits) < nb_errors:
+                        new_culprit = random.sample(current_suspects, 1)
+                        if new_culprit not in culprits:
+                            culprits.append(new_culprit)
+                    curr_statistics = self.generate_paths(step, culprits, current_suspects)
+                    self.statistics_overall[combination] = curr_statistics
 
-            self.save()
-
+                self.save()
+        else:
+            if combination not in self.statistics_overall:
+                return None
         return self.statistics_overall[combination]
 
     def find_step(self, culprit):
