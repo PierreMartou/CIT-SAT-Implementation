@@ -51,7 +51,7 @@ print("total number of states is", totalStates, "total cost is", totalCost)"""
 
 
 
-def ctt_isolation_metrics(max_iterations=5):
+def average_de_activations(max_iterations=5):
     modelFiles = "../data/SPLOT/SPLOT-NEW/SPLOT-txt/"
     constraintsFiles = "../data/SPLOT/SPLOT-NEW/SPLOT-txtconstraints/"
     storageCTT = "../data/SPLOT/SPLOT-NEW/SPLOT-TestSuitesCTT/"
@@ -148,14 +148,12 @@ def ctt_isolation_metrics(max_iterations=5):
             nb_groups[nb_features] = [result]
 
     #average_suspects.setdefault(91, []).append(60)
-    average_suspects = aggregate_data(average_suspects, step=3)
+    average_suspects = aggregate_data(average_suspects, step=10)
     r2_score(average_suspects)
     r2_score(average_suspects, degree=1)
     plot_dict_with_regression(average_suspects, "Average number of suspects", degree=2)
 
     #average_suspects = aggregate_data(average_suspects)
-
-
     #plot_dict_with_regression(average_suspects, "Average number of suspects", degree=1)
 
 def overall_isolation_metrics(max_iterations = 10, group_mode = None):
@@ -586,11 +584,16 @@ if __name__ == '__main__':
     sys.modules['TestSuite'] = utils.TestSuite
     #sys.modules['ErrorIsolation_Data'] = ErrorIsolation
 
-    ctt_isolation_metrics(max_iterations=5)
+    # Figure 6.2
+    average_de_activations(max_iterations=5)
 
-    #overall_isolation_metrics(2, group_mode=None)
-    #MAM_group_metrics(10)
-    #SPLOTsingleModel(2)
-    #plotgroupSPLOT(3)
-    #MAM_N_metrics(5)
-    #table_all_stats_SPLOT(5)
+    # Figure 6.4
+    plotgroupSPLOT("steps", 3)
+    plotgroupSPLOT("SMTcalls", 3)
+
+    # Table 6.2
+    table_all_stats_SPLOT(5)
+
+    # utils
+    # overall_isolation_metrics(2, group_mode=None)
+    # SPLOTsingleModel(2)

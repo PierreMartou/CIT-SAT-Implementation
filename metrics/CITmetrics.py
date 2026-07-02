@@ -67,14 +67,14 @@ def thesisExample():
 
 
 def incrementalRun(mode="SAT", verbose=True):
-    models = ["./data/minimalist/", "./data/normal_size/", "./data/enlarged/"]
+    models = ["../data/SmartMessenger/minimalist/", "../data/SmartMessenger/normal_size/", "../data/SmartMessenger/enlarged/"]
 
     s1 = SystemData(models[0] + 'contexts.txt', models[0] + 'features.txt', models[0] + 'mapping.txt')
     s2 = SystemData(models[1] + 'contexts.txt', models[1] + 'features.txt', models[1] + 'mapping.txt')
     s3 = SystemData(models[2] + 'contexts.txt', models[2] + 'features.txt', models[2] + 'mapping.txt')
 
     result1 = CITSAT(s1)
-    if mode is "SAT":
+    if mode == "SAT":
         Feat1to2 = TestsEvolution([s1.getNodes(), result1], s2, mode)
     else:
         Feat1to2 = TestsEvolution([s1.getNodes(), result1], s2, 6)
@@ -115,8 +115,8 @@ def anotherTest():
         print("Propagated node : " + str(s.getNodes()[abs(p)]))
 
 
-def rearrangementMetricsTest(iterations):
-    models = ["./data/minimalist/", "./data/normal_size/", "./data/enlarged/"]
+def rearrangementMetricsTest(iterations, useCoreOptimisation=True):
+    models = ["../data/SmartMessenger/minimalist/", "../data/SmartMessenger/normal_size/", "../data/SmartMessenger/enlarged/"]
     models = [models[2]]
     for model in models:
         unrefinedScore = 0
@@ -135,7 +135,7 @@ def rearrangementMetricsTest(iterations):
             s = SystemData(model + 'contexts.txt', model + 'features.txt', model + 'mapping.txt')
             veryUglyWay = []
             time1 = time.time()
-            result = CITSAT(s, False, 30, veryUglyWay=veryUglyWay)
+            result = CITSAT(s, False, 30, veryUglyWay=veryUglyWay, useCore=useCoreOptimisation)
             timeScore += time.time() - time1
             if len(veryUglyWay) > 0:
                 propagations += veryUglyWay[0][0]
@@ -152,17 +152,22 @@ def rearrangementMetricsTest(iterations):
             increase = 100*(unrefined - refined) / unrefined
             increaseScore += increase
             tmpIncreaseVariance += increase * increase
-        print("Average size of the arrays : " + str(sizeScore/iterations))
-        print("Unrefined score : " + str(unrefinedScore) + "; in average : " + str(unrefinedScore/iterations))
-        print("Refined score : " + str(refinedScore) + "; in average : " + str(refinedScore/iterations))
-        print("(From the score themselves) Average decrease of " + str(100*(unrefinedScore - refinedScore)/unrefinedScore) + " %")
-        print("Average decrease score of : " + str(increaseScore/iterations) + " %")
-        print("Variance of the score : " + str(math.sqrt(tmpIncreaseVariance/iterations - ((increaseScore/iterations) * (increaseScore/iterations)))))
-        print("Average of time taken : " + str(timeScore/iterations))
-        print("Average propagations : " + str(propagations/iterations) + " - Average propagated nodes : " + str(propagatedScore/iterations))
-        print("Unrefined FEATURE score : " + str(unrefinedFeatureScore) + "; in average : " + str(unrefinedFeatureScore/iterations))
-        print("Refined FEATURE score : " + str(refinedFeatureScore) + "; in average : " + str(refinedFeatureScore/iterations))
-        print("(From the score themselves) FEATURE SCORE Average decrease of " + str(100*(unrefinedFeatureScore - refinedFeatureScore)/unrefinedFeatureScore) + " %")
+        print("Generated " + str(iterations) + " test suites for the Smart Messaging Application.")
+        if useCoreOptimisation:
+            print("(generated using the first optimisation, that filters core features/contexts")
+        else:
+            print("(generated NOT using the first optimisation, that filters core features/contexts")
+        print("Size of the test suite (average): " + str(sizeScore/iterations))
+        print("Unordered number of feature switches (average): " + str(unrefinedScore/iterations))
+        print("Rearranged number of feature switches (average): " + str(refinedScore/iterations))
+        #print("(From the score themselves) Average decrease of " + str(100*(unrefinedScore - refinedScore)/unrefinedScore) + " %")
+        #print("Average decrease score of : " + str(increaseScore/iterations) + " %")
+        #print("Variance of the score across iterations: " + str(math.sqrt(tmpIncreaseVariance/iterations - ((increaseScore/iterations) * (increaseScore/iterations)))))
+        print("Average of # SAT propagations: " + str(propagations/iterations) + " - Average # of propagated values: " + str(propagatedScore/iterations))
+        print("Average of time taken to generate one test suite: " + str(timeScore/iterations))
+        #print("Unrefined FEATURE score: " + str(unrefinedFeatureScore) + "; in average : " + str(unrefinedFeatureScore/iterations))
+        #print("Refined FEATURE score: " + str(refinedFeatureScore) + "; in average : " + str(refinedFeatureScore/iterations))
+        #print("(From the score themselves) FEATURE SCORE Average decrease of " + str(100*(unrefinedFeatureScore - refinedFeatureScore)/unrefinedFeatureScore) + " %")
 
 
 def evolutionMetrics(iterations):
@@ -226,29 +231,28 @@ def evolutionMetrics(iterations):
         print(newLine)
 
 
-def procedureForIncrementalTesting():
+def procedureForIncrementalTesting(S=[10, 11, 12, 12], iterations=10):
     modifCost = []
     totalCosts = []
     newTests = []
     realSteps = []
-    repeats = 10
-    for i in range(10, 13):
+    for i in S:
         tmpModifCost = 0
         tmptotalCost = 0
         tmpNewTest = 0
         tmpStep = 0
-        for iter in range(repeats):
+        for iter in range(iterations):
             info = incrementalRun(i, False)
             tmpModifCost += info[0]
             tmptotalCost += info[1]
             tmpNewTest += info[2]
             tmpStep += info[3]
-        totalCosts.append(tmptotalCost / repeats)
-        newTests.append(tmpNewTest / repeats)
-        realSteps.append(tmpStep / repeats)
-        modifCost.append(tmpModifCost / repeats)
-        print("For S = " + str(i) + ", cost : " + str(tmptotalCost / repeats) + ", modif cost : " + str(tmpModifCost / repeats) +  ", newTests : " + str(
-            tmpNewTest / repeats) + ", real steps : " + str(tmpStep / repeats))
+        totalCosts.append(tmptotalCost / iterations)
+        newTests.append(tmpNewTest / iterations)
+        realSteps.append(tmpStep / iterations)
+        modifCost.append(tmpModifCost / iterations)
+        print("For S = " + str(i) + ", cost : " + str(tmptotalCost / iterations) + ", modif cost : " + str(tmpModifCost / iterations) +  ", newTests : " + str(
+            tmpNewTest / iterations) + ", real steps : " + str(tmpStep / iterations))
     print("Total costs : " + str(totalCosts))
     print("Added tests : " + str(newTests))
     print("Real steps : " + str(realSteps))
@@ -261,8 +265,7 @@ def plotAnalysisOfS():
     param = polyfit(x, y, 2)
     f = polyval(param, xnew)
 
-    font = {'family': 'normal',
-            'size': 16}
+    font = {'size': 16}
     plt.rc('font', **font)
 
     plt.plot(x, y, 'o', xnew, f, '--')
@@ -272,7 +275,7 @@ def plotAnalysisOfS():
     plt.ylabel('Total cost')
     #test = [1, 3, 5, 7, 9, 11, 13, 15]
     #plt.xticks(test, test)
-    plt.savefig("results/totalCost.pdf")
+    plt.savefig("../data/SmartMessenger/totalCost.pdf")
     plt.show()
 
     y = [5.0, 5.2, 4.6, 5.3, 5.7, 5.2, 6.1, 6.0, 5.9, 5.5, 6.4, 6.5, 7.2, 7.4, 7.4]
@@ -287,7 +290,7 @@ def plotAnalysisOfS():
     #test = [1, 3, 5, 7, 9, 11, 13, 15]
     #plt.xticks(test, test)
     plt.ylabel('Number of new tests')
-    plt.savefig("results/addedTests.pdf")
+    plt.savefig("../data/SmartMessenger/addedTests.pdf")
     plt.show()
 
     y = [1.0, 1.8, 2.4, 2.9, 3.3, 3.8, 4.3, 4.325, 4.7, 5.5, 4.9, 6, 6.2, 5.4]
@@ -302,22 +305,24 @@ def plotAnalysisOfS():
     plt.ylabel('updates/partial scenario')
     #test = [1, 3, 5, 7, 9, 11, 13, 15]
     #plt.xticks(test, test)
-    plt.savefig("results/testcase-scenario.pdf")
+    plt.savefig("../data/SmartMessenger/testcase-scenario.pdf")
     plt.show()
 
 
-# evolutionMetrics(10)
-# rearrangementMetricsTest(20)
-# anotherTest()
+if __name__ == '__main__':
 
-# singleRun() # Runs a single time the algorithm and displays the results
+    # Various metrics on the Smart Messaging Application, for the CIT test generation (optimisations) Section 3.2 and rearrangement Section 3.3
 
-# procedureForIncrementalTesting()
+    # With the first optimisation that filters core features/contexts.
+    rearrangementMetricsTest(iterations=2, useCoreOptimisation=True)
 
-plotAnalysisOfS()
+    # Without this optimisation
+    rearrangementMetricsTest(iterations=2, useCoreOptimisation=False)
 
-# multipleRuns(3)
+    # (Figure 3.2 and 3.3) Test suite Augmentation Figures (the datasets are hard-coded, but not the least square approximation used)
+    plotAnalysisOfS()
 
-# thesisExample()
+    # (Table 3.11, 3.12 and to retrieve all data) To retrieve the value for a specific value of S (here, from 10 to 12):
+    procedureForIncrementalTesting([2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13], iterations=10)
 
 

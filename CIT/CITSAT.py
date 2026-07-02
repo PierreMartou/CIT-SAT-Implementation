@@ -129,11 +129,10 @@ def discoverCore(solver, valuesForFactors):
     return core
 
 """Main algorithm of this module. Implementation of a greedy CIT-SAT algorithm, and returns a covering array."""
-def CITSAT(systemData, verbose=False, numCandidates=30, testsEvolution = None, veryUglyWay = []):
+def CITSAT(systemData, verbose=False, numCandidates=30, testsEvolution = None, veryUglyWay = [], useCore=True):
     mySATsolver = SATSolver(systemData)
     valuesForFactors = systemData.getValuesForFactors()
 
-    useCore = True
     noUselessSAT = True
     propagate = True
     core = {}

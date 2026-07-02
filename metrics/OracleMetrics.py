@@ -1,3 +1,7 @@
+import sys
+import TestOracle
+import utils
+
 from utils.TestSuite import *
 from TestOracle.AlternativePaths import computeAlts
 from CTTmetrics import getNumberOfSPLOTModels, smoothLinearApprox, computeCorrelation
@@ -135,7 +139,7 @@ def oracleSPLOTmetrics(rangeCategory, states=None, recompute=False, verbose=Fals
                 for state in states:
                     id = state-min(states)
                     tempstorageAlts = storageAlts + filename[:-4]
-                    paths, undetectable = computeAlts(tempstorageAlts, s, currSuite, tag=iteration, states=state, recompute=recompute)
+                    paths, undetectable = computeAlts(tempstorageAlts, s, currSuite, iteration=iteration, states=state, recompute=recompute)
                     undetectables[id] += undetectable
                     lengthAndCost = [t.getShortenedLengthAndCost() for p in paths for t in p]
                     #print("Max steps :", max([t[0] - 2 for t in lengthAndCost]), " sum of steps : ", sum([t[0] - 2 for t in lengthAndCost]))
@@ -151,7 +155,8 @@ def oracleSPLOTmetrics(rangeCategory, states=None, recompute=False, verbose=Fals
                     else:
                         sizesOracle[size] = [toAddToSizesOracle]
 
-    computeCorrelation(sizesCTT, sizesOracle)
+    if len(categories) == 1:
+        computeCorrelation(sizesCTT, sizesOracle)
     normalise = quty*max_iterations
     steps = [round(s/normalise, 1) for s in steps]
     cost = [round(c/normalise, 1) for c in cost]
@@ -178,21 +183,35 @@ def oracleSPLOTmetrics(rangeCategory, states=None, recompute=False, verbose=Fals
 
 
 if __name__ == '__main__':
-    #categories = [[10, 20], [20, 30], [30, 40], [40, 50], [50, 70], [70, 100]]
-    categories = [[10, 20], [20, 30], [30, 40], [40, 50], [50, 60], [60, 70], [70, 80], [80, 90], [90, 100]]
-    #debugging("model_20130510_203163945.txt", 2)
-    """with concurrent.futures.ProcessPoolExecutor() as executor:
-        futures = []
-        for c in categories:
-            futures.append(executor.submit(oracleSPLOTmetrics, c, [6], recompute=False, verbose=False))
-        done = 0
-        for f in futures:
-            done += 1
-            f.result()
-        print("done :", done)"""
-    #for c in categories:
-    #    oracleSPLOTmetrics(c, [6], recompute=False, verbose=True)
+    # If you encounter errors "ModuleNotFoundError" when unpickling objects, you might want to correct them this way:
+    sys.modules['AlternativePaths'] = TestOracle.AlternativePaths
+    sys.modules['SystemData'] = utils.SystemData
+    sys.modules['TestSuite'] = utils.TestSuite
 
-    #for r in categories:
-    #    oracleSPLOTmetrics(r, [6], recompute=False, verbose=True)
-    running_example_path()
+    """Table 5.2 (all metrics for the test oracle)
+    """
+
+    categories = [[10, 20], [20, 30], [30, 40], [40, 50], [50, 70], [70, 100]]
+    for c in categories:
+        oracleSPLOTmetrics(c, [6], recompute=False, verbose=True)
+
+    """Figure 5.2 (Evolution of the total number of intermediate configuration in alternative execution paths for different values of N)
+        """
+    print("Computing Fig. 5.2, the number of intermediate configurations for different values of N")
+    oracleSPLOTmetrics([10, 50], None, recompute=False, verbose=True)
+
+
+    #running_example_path()
+
+    #debugging("model_20130510_203163945.txt", 2)
+    #with concurrent.futures.ProcessPoolExecutor() as executor:
+    #    futures = []
+    #    for c in categories:
+    #        futures.append(executor.submit(oracleSPLOTmetrics, c, [6], recompute=False, verbose=False))
+    #    done = 0
+    #    for f in futures:
+    #        done += 1
+    #        f.result()
+    #    print("done :", done)
+
+

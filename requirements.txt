@@ -1,0 +1,5 @@
+z3-solver
+python-sat
+numpy
+matplotlib
+scipy

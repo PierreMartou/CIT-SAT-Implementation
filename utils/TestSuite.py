@@ -23,13 +23,17 @@ def computeCITSuite(fpath, s, iteration=0, candidates=30, recompute=False):
 
 
 def computeCTTSuite(fpath, s, iteration, candidates=20, interaction_filter=True, weight_lookahead=0.5,
-                    weight_comparative=0.3, recompute=False, limit=1000, verbose=False, specificTransitionCoverage=None):
+                    weight_comparative=0.3, recompute=False, limit=1000, verbose=False, specificTransitionCoverage=None, ignoreVersion=False):
     version = "1.1.0"
     filepath = fpath + str(iteration)+".pkl"
     if os.path.exists(filepath) and not recompute:
         testSuite = readSuite(filepath)
-        if testSuite.isUpToDate(version):
+        if testSuite.isUpToDate(version) or ignoreVersion:
             return testSuite
+        else:
+            preVersion = testSuite.getVersion()
+            #print("Version: " + str(preVersion))
+    #print("Recomputing a CTT test suite (recompute: "+str(recompute)+").")
     if not isinstance(s, SystemData):
         s = SystemData(featuresFile=s)
     t = BuildingCTT(s, verbose=verbose, numCandidates=candidates, interaction_filter=interaction_filter, weight_lookahead=weight_lookahead, weight_comparative=weight_comparative, limit=limit, specificTransitionCoverage=specificTransitionCoverage)
@@ -87,6 +91,10 @@ class TestSuite:
         if hasattr(self, "version"):
            return self.version == version
         return False
+
+    def getVersion(self):
+        if hasattr(self, "version"):
+           return self.version
     def __eq__(self, other):
         me = self.getUnorderedTestSuite()
         for t in range(len(me)):

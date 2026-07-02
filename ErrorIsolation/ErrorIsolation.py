@@ -9,7 +9,7 @@ import os
 import random
 from TestOracle.OracleSolver import OracleSolver
 
-def getErrorIsolation(fpath, s, storageCTT, storageAlts, iteration=0, states=10, recompute=False, recomputeSuites=False, group_mode = None, verbose=False):
+def getErrorIsolation(fpath, s, storageCTT, storageAlts, iteration=0, states=10, recompute=False, recomputeSuites=False, group_mode = None, verbose=False, ignoreVersion=False):
     # 1.1 added a filter on all suspects when a group is cleared.
     version = "1.1.0"
     file_path = fpath + "-" + str(iteration) + ".pkl"
@@ -18,7 +18,7 @@ def getErrorIsolation(fpath, s, storageCTT, storageAlts, iteration=0, states=10,
         error_isolation = readErrorIsolation(file_path)
         #print(error_isolation.get_current_statistics())
         #print("File:", file_path, "; Statistics size:", len(error_isolation.statistics)) #, ", entries:", error_isolation.statistics.keys())
-        if not error_isolation.isUpToDate(version):
+        if not error_isolation.isUpToDate(version) and not ignoreVersion:
             #print("Error isolation not up to date, regenerating, for file: ", fpath)
             if not isinstance(s, SystemData):
                 s = SystemData(featuresFile=s)

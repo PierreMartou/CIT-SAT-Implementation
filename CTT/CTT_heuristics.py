@@ -30,9 +30,10 @@ class BuildingCTT:
             self.unCovSets = []
             self.unCovTransitions, self.unCovPairsCount = self.computeSpecificSetToCover(specificTransitionCoverage)
         if verbose:
-            print("Number of uncovered interactions and transitions : " + str(len(self.unCovSets)) + " - " + str(len(self.unCovTransitions)))
+            print("Number of interactions and transitions to cover: " + str(len(self.unCovSets)) + " - " + str(len(self.unCovTransitions)))
         self.totalNumberOfPairs = len(self.unCovSets) + len(self.unCovTransitions)
         # self.unCovSets, self.unCovTransitions, self.unCovPairsCount = self.computeSetToCover("basic")
+        self.fix_random = False
 
     def computeScores(self, prevTestCase):
         tempUnCovPairsCnt = self.unCovPairsCount.copy()
@@ -44,16 +45,17 @@ class BuildingCTT:
 
                 #WARNING CHANGE REVIEW
                 #if prevTestCase is not None:
-                opposite_pair = (transition[0][0], -1*transition[0][1])
-                if opposite_pair in tempUnCovPairsCnt:
-                    tempUnCovPairsCnt[opposite_pair] = tempUnCovPairsCnt[opposite_pair] + self.weight_lookahead
-                else:
-                    tempUnCovPairsCnt[opposite_pair] = self.weight_lookahead
-                opposite_pair = (transition[1][0], -1*transition[1][1])
-                if opposite_pair in tempUnCovPairsCnt:
-                    tempUnCovPairsCnt[opposite_pair] = tempUnCovPairsCnt[opposite_pair] + self.weight_lookahead
-                else:
-                    tempUnCovPairsCnt[opposite_pair] = self.weight_lookahead
+                if self.weight_lookahead > 0:
+                    opposite_pair = (transition[0][0], -1*transition[0][1])
+                    if opposite_pair in tempUnCovPairsCnt:
+                        tempUnCovPairsCnt[opposite_pair] = tempUnCovPairsCnt[opposite_pair] + self.weight_lookahead
+                    else:
+                        tempUnCovPairsCnt[opposite_pair] = self.weight_lookahead
+                    opposite_pair = (transition[1][0], -1*transition[1][1])
+                    if opposite_pair in tempUnCovPairsCnt:
+                        tempUnCovPairsCnt[opposite_pair] = tempUnCovPairsCnt[opposite_pair] + self.weight_lookahead
+                    else:
+                        tempUnCovPairsCnt[opposite_pair] = self.weight_lookahead
                 # Following is not logical.
                 """if prevTestCase is not None and transition[0][1] == prevTestCase[transition[0][0]]:
                     opposite_pair = (transition[0][0], -1*transition[0][1])
@@ -66,6 +68,7 @@ class BuildingCTT:
 
         # Comparative scores.
         reTempUnCovPairsCnt = {}
+
         for pair in tempUnCovPairsCnt:
             #tempUnCovPairsCnt[pair] = tempUnCovPairsCnt[pair] - self.weight_comparative*tempUnCovPairsCnt[(pair[0], -pair[1])]
             if (pair[0], -pair[1]) in tempUnCovPairsCnt:
@@ -138,12 +141,17 @@ class BuildingCTT:
                                     futureTestCase[transition[0][0]] = transition[0][1]
 
             scores.append(score)
-        for score in scores:
+
+        for i in range(len(scores)):
+            score = scores[i]
             if score > bestScore:
                 bestScore = score
-                candidates = [values[scores.index(score)]]
+                candidates = [values[i]]
             elif score == bestScore:
-                candidates.append(values[scores.index(score)])
+                if self.fix_random:
+                    candidates.append(values[i])
+                else:
+                    candidates.append(values[scores.index(score)])
         return random.choice(candidates)
 
     def selectBestTestCase(self, testCasePool, prevTestCase):
@@ -178,13 +186,14 @@ class BuildingCTT:
                     score += 1
                 else:
                     # LOOKAHEAD SCORES IF WE PREPARE FOR A FUTURE TRANSITION BY USING THIS TEST CASE.
-                    if testCase[transition[0][0]] == -transition[0][1] and testCase[transition[1][0]] == -transition[1][1]:
-                        tempFutureCase = futureTestCase + [t for t in [transition[0][1], transition[1][1]] if t not in futureTestCase]
-                        if self.solver.checkSAT(tempFutureCase):
-                            futureTestCase = tempFutureCase
-                            lookaheadscore += self.weight_lookahead
-                        else:
-                            lostscore += self.weight_lookahead
+                    if self.weight_lookahead > 0 :
+                        if testCase[transition[0][0]] == -transition[0][1] and testCase[transition[1][0]] == -transition[1][1]:
+                            tempFutureCase = futureTestCase + [t for t in [transition[0][1], transition[1][1]] if t not in futureTestCase]
+                            if self.solver.checkSAT(tempFutureCase):
+                                futureTestCase = tempFutureCase
+                                lookaheadscore += self.weight_lookahead
+                            else:
+                                lostscore += self.weight_lookahead
             #print("scoring score is ", score, "lookaheadscore is ", lookaheadscore, "lost score is ", lostscore)
 
             scores.append(score)

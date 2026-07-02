@@ -1,10 +1,13 @@
+import sys
+import utils
 from utils.TestSuite import *
+from utils.SystemData import SystemData
+from utils.TestSuite import TestSuite
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.interpolate as interpolate
 import scipy.stats as scistats
 import concurrent.futures
-
 
 def computeEvolutionAverage(data, iterations):
     evolutionAverage = []
@@ -39,7 +42,7 @@ def smoothLinearApprox(x, y):
     return x_smooth, y_smooth
 
 
-def RISEvaluation(iterations, mode=None, recompute=False, latex=False, plot=None):
+def RISEvaluation(iterations, mode=None, recompute=False, latex=False, plot=None, verbose=False):
     models = "../data/RIS-FOP/"
     s = SystemData(featuresFile=models + 'features.txt')
     font = {'size': 16}
@@ -72,7 +75,7 @@ def RISEvaluation(iterations, mode=None, recompute=False, latex=False, plot=None
 
         for i in range(iterations):
             testSuite = computeCTTSuite(storage, s, i, interaction_filter=i_filter, weight_lookahead=w_la,
-                                        weight_comparative=w_c, recompute=recompute)
+                                        weight_comparative=w_c, recompute=recompute, verbose=verbose)
             allSize.append(testSuite.getLength())
             allCosts.append(testSuite.getCost())
             if plot is not None:
@@ -155,7 +158,7 @@ def RISEvaluation(iterations, mode=None, recompute=False, latex=False, plot=None
                 plt.ylabel('Number of switches')
                 # test = [1, 3, 5, 7, 9, 11, 13, 15]
                 # plt.xticks(test, test)
-    if not latex:
+    if False: # not latex
         print("We drew our conclusions from the decrease in average size, cost and standard deviation from No Improvement to Improvement 1 & 2 & 3.")
         sizereduc = (sizeAverages[0]-sizeAverages[-1]) / sizeAverages[0]
         costreduc = (costAverages[0]-costAverages[-1]) / costAverages[0]
@@ -338,15 +341,14 @@ def computeCorrelation(sizesCIT, sizesCTT):
         yCTT.append(sum(sizesCTT[size]) / len(sizesCTT[size]))
     # print(yCIT)
     # print(yCTT)
-    print("Correlation coefficient : " + str(scistats.pearsonr(yCIT, yCTT)))
-    print("Factor more : " + str(sum(yCTT) / sum(yCIT)))
+    print("Correlation coefficient : " + str(scistats.pearsonr(yCIT, yCTT)) + " ; Average factor:" + str(sum(yCTT) / sum(yCIT)))
 
-def SPLOTweights(mode, showSize=False, iteration=0, recompute=False, threading=False):
+def SPLOTweights(mode, showSize=False, iteration=0, recompute=False, threading=False, ignoreVersion=False):
     modelFiles = "../data/SPLOT/SPLOT-NEW/SPLOT-txt/"
     constraintsFiles = "../data/SPLOT/SPLOT-NEW/SPLOT-txtconstraints/"
     if "3" in mode:
         storageCTT = "../data/SPLOT/SPLOT-NEW/SPLOT-Comparative/"
-        max_iterations = 4
+        max_iterations = 3
     else:
         storageCTT = "../data/SPLOT/SPLOT-NEW/SPLOT-Lookahead/"
         max_iterations = 3
@@ -390,12 +392,12 @@ def SPLOTweights(mode, showSize=False, iteration=0, recompute=False, threading=F
                         tempStorageCTT = storageCTT + filename[:-4] + "-" + str(weight/10)
                         sT2 = SystemData(featuresFile=txt, extraConstraints=txtConstraints)
                         if recompute or threading:
-                            future = executor.submit(computeCTTSuite, tempStorageCTT, iteration, sT2, interaction_filter=i_filter, weight_lookahead=w_la, weight_comparative=w_c, recompute=recompute)
+                            future = executor.submit(computeCTTSuite, tempStorageCTT, iteration, sT2, interaction_filter=i_filter, weight_lookahead=w_la, weight_comparative=w_c, recompute=recompute, ignoreVersion=ignoreVersion)
                             tempThreadsList.append(future)
                         else:
                             suites.append(computeCTTSuite(tempStorageCTT, sT2, iteration, interaction_filter=i_filter,
                                                           weight_lookahead=w_la, weight_comparative=w_c,
-                                                          recompute=recompute))
+                                                          recompute=recompute, ignoreVersion=ignoreVersion))
                             tempThreadsList.append(0)
 
                     for i in range(len(tempThreadsList)):
@@ -594,7 +596,7 @@ def getCTTSPLOTresults(rangeCategories, recompute=False, latex=True, onlyCIT=Fal
         costsCIT = round(costsCIT/normalise, 1)
         #for arg in [ranges, quty, sizesCIT, sizesCTT[-1], costsCITDiss, costsCITCost, costsCTT[-1]]
 
-def SPLOTresults(rangeCategory, recompute=False, computeMetrics=True, latex=False, specificModel = None, verbose=False):
+def SPLOTresults(rangeCategory, recompute=False, computeMetrics=True, latex=False, specificModel = None, verbose=False, ignoreVersion=False):
     recomputeCIT = False
     if specificModel is not None:
         rangeCategory = [0, 100]
@@ -680,13 +682,13 @@ def SPLOTresults(rangeCategory, recompute=False, computeMetrics=True, latex=Fals
                                 sT2 = SystemData(featuresFile=txt, extraConstraints=txtConstraints)
                                 future = executor.submit(computeCTTSuite, tempStorageCTT, iteration, sT2, candidates=candidates,
                                                     interaction_filter=i_filter, weight_lookahead=w_la,
-                                                    weight_comparative=w_c, recompute=recompute, limit=templimit)
+                                                    weight_comparative=w_c, recompute=recompute, limit=templimit, ignoreVersion=ignoreVersion)
                                 tempThreadsList.append(future)
                             else:
                                 tempSuiteList.append(
                                     computeCTTSuite(tempStorageCTT, s, iteration, candidates=candidates,
                                                     interaction_filter=i_filter, weight_lookahead=w_la,
-                                                    weight_comparative=w_c, recompute=recompute, limit=templimit))
+                                                    weight_comparative=w_c, recompute=recompute, limit=templimit, ignoreVersion=ignoreVersion))
                         if threading:
                             for m in range(len(modes)):
                                 threadsCTT[m].append(tempThreadsList[m])
@@ -853,11 +855,11 @@ def findBestWeights(look_ahead=True):
     plt.show()
 
 
-def SPLOTcreateTable(rangeCategories, recompute=False, verbose=False):
+def SPLOTcreateTable(rangeCategories, recompute=False, verbose=False, ignoreVersion=False):
     print("#feature\tQty\t\tSize\t\t\t\t\t\t\t\t\tCost\t\t\t\t\t\t\t\t\t\t\t\t\t\tT. cov.")
     print("\t\t\t\t\tCIT\tCTT0\tCTT1\tCTT1&2\tCTT1&2&3\tCIT Diss\tCIT Cost\tCTT0\tCTT1\tCTT1&2\tCTT1&2&3\tCIT Diss\tCIT Cost")
     for r in rangeCategories:
-        SPLOTresults(r, recompute=recompute, computeMetrics=True, verbose=verbose, latex=True)
+        SPLOTresults(r, recompute=recompute, computeMetrics=True, verbose=verbose, latex=False, ignoreVersion=ignoreVersion)
 
 def SPLOTweightsSTD(std=True):
     max_iterations = 3
@@ -880,11 +882,37 @@ def SPLOTweightsSTD(std=True):
     plt.show()
 
 if __name__ == '__main__':
-    #cProfile.run('SPLOTweights("1&2")')
-    categories = [[10, 20], [20, 30], [30, 40], [40, 50], [50, 70], [70, 100]]
-    #getCTTSPLOTresults([[10, 100]], recompute=False, onlyCIT=True)
-    #SPLOTweightsSTD(True)
-    SPLOTweights("1&2", threading=False, showSize=False)
+
+    # If you encounter errors "ModuleNotFoundError" when unpickling objects, you might want to correct them this way:
+    #sys.modules['AlternativePaths'] = AlternativePaths
+    sys.modules['SystemData'] = utils.SystemData
+    sys.modules['TestSuite'] = utils.TestSuite
+
+    # change this variable throughout the file to recompute instead of reusing generated results
+    recompute = False
+
+    """ Results from Table 4.4 (Evaluation of the improvements on the Risk Information System) """
+
+    print("Starting reproduction of Table 4.4. It might take several minutes or up to an hour on a slow machine if you chose to recompute test suites.")
+    RISEvaluation(100, ["0", "1", "2", "3", "1&2", "2&3", "1&3", "1&2&3"], recompute, plot=None)
+
+    """ Results from Table 4.5, 4.6 and 4.7 (Generation of CIT test suites, CTT test suites, with and without optimisations)
+    Reproduction is very time-consuming (several hours, especially if everything is "recomputed")."""
+
+    recompute = False
+    print("\n\n==========================\nStarting reproduction of CIT/CTT results. It might take minutes or dozens of hours on a slow machine if you chose to recompute test suites and high limit for size of feature models.")
+    categories = [[10, 20], [20, 30], [30, 40], [40, 50], [50, 70]] #, [70, 100]]
+    SPLOTcreateTable(categories, recompute=recompute, ignoreVersion=True)
+
+    """Figure 4.3 and 4.4, improvements on the SPLOT feature models. For the impact of the look-ahead, put mode"1&2", for the comparative mode"1&2&3".
+    
+    To plot the size of generated test suites, put showSize=True. To plot the reconfiguration cost, put showSize=False.
+    
+    """
+    #SPLOTweights("1&2", threading=False, showSize=False)
+    SPLOTweights("1&2", threading=False, showSize=True, ignoreVersion=True)
+
+    #utils
     # showAllSPLOTModels()
     #SPLOTmodels()
     #SPLOTcreateTable(categories, recompute=False, verbose=False)
@@ -896,6 +924,9 @@ if __name__ == '__main__':
     # RISEvaluation(1000, ["0", "1", "2", "3", "1&2", "2&3", "1&3", "1&2&3"], recompute=False, plot=None)
     # findBestWeights(look_ahead=False)
     # getCITSizeAverage(50)
+
+
+    #cProfile.run('SPLOTweights("1&2")')
 
 
 #model_20130703_1107240012.txt

@@ -1,8 +1,8 @@
-Occupied-IMPLIES-Mute
-Quiet-IMPLIES-Mute
-Normal-Available-AudioCard-IMPLIES-Alarm
-Loud-Available-IMPLIES-Vibration
-AudioCard-IMPLIES-Vocal
-VideoCard-Good-IMPLIES-Photo
-Good-IMPLIES-Standard
-Bad-IMPLIES-Light
+Occupied-ACTIVATES-Mute
+Quiet-ACTIVATES-Mute
+Normal-Available-AudioCard-ACTIVATES-Alarm
+Loud-Available-ACTIVATES-Vibration
+AudioCard-ACTIVATES-Vocal
+VideoCard-Good-ACTIVATES-Photo
+Good-ACTIVATES-Standard
+Bad-ACTIVATES-Light
