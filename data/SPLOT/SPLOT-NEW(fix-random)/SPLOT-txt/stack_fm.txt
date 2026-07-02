@@ -1,0 +1,10 @@
+Feature/Optional/size
+Feature/Mandatory/element type
+Feature/Optional/optimization
+Feature/Optional/counter
+Feature/Optional/additional features
+size/Alternative/fixed-dynamic
+fixed/Mandatory/value
+element type/Alternative/integer-float-string
+optimization/Alternative/speed-memry usage
+additional features/Or/thread safety-bounds check-type check

@@ -1,0 +1,14 @@
+Feature/Mandatory/insured_object
+Feature/Mandatory/coverage
+Feature/Mandatory/payment
+Feature/Mandatory/conditions
+Feature/Mandatory/premium
+Feature/Mandatory/payee
+insured_object/Alternative/crpration-realty-movable_property-person
+coverage/Or/illness-life-unemployment-damage-loss
+payment/Alternative/service-ammount
+payment/Optional/own_risk
+conditions/Mandatory/acceptance
+conditions/Mandatory/exception
+premium/Alternative/direct-periodical
+payee/Or/person-payee_crpration
