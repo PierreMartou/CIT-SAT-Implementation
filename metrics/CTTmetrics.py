@@ -877,7 +877,7 @@ def SPLOTweightsSTD(std=True):
     sizes = [sum(s)/max_iterations for s in sizes]
     costs = [sum(s) / max_iterations for s in costs]
     plt.plot(np.linspace(0.1, 1, 10), sizes)
-    plt.xlabel
+    # plt.xlabel
 
     plt.show()
 

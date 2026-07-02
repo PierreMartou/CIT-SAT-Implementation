@@ -92,7 +92,6 @@ This file also allows to reproduce the following results, from Section 6.5 - Val
 
 All results can be replicated in the file [./metrics/ErrorIsolation_metrics.py](./metrics/ErrorIsolation_metrics.py).
 
-1) The method "average_de_activations()" reproduces results shown on Figure 6.2, the evolution of the number of feature (de)activations with the number of features.
-2) The method "plotgroupSPLOT" reproduces results shown on Figure 6.4, the evolution of size and number of SMT calls with the number of features, both with and without group initialisation.
-It also computes the coefficients of determination (R²) for approximation with a polynomial of degree 2, as mentioned in the paper.
-3) The method "table_all_stats_SPLOT" reproduces all results from Table 6.2, which aggregates statistics when performing our Error Isolation strategy across all feature models.
+1) Figure 6.2 (the evolution of the number of feature (de)activations with the number of features)
+2) Figure 6.4 (the evolution of size and number of SMT calls with the number of features, both with and without group initialisation). It also computes the coefficients of determination (R²) for approximation with a polynomial of degree 2, as mentioned in the paper.
+3) Table 6.2: The method "table_all_stats_SPLOT" reproduces all results from Table 6.2, which aggregates statistics when performing our Error Isolation strategy across all feature models.

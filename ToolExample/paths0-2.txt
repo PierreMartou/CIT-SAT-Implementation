@@ -1,26 +1,26 @@
-3
+4
 0.0% undetectables
 ACTIVATION
-TreeRoot-Map-Widget-Instructions-EmergencyLevel-InstructionsFloods-High-Feature
+TreeRoot-Widget-Low-Map-InstructionsColdweather-Instructions-EmergencyLevel-High-Feature
 DEACTIVATION
-InstructionsColdweather-Low
+InstructionsFloods
 BREAKPOINT (Test 0 - initial state)
 ACTIVATION
-InstructionsColdweather-Low
+InstructionsFloods
 DEACTIVATION
-Map-InstructionsFloods-High
+Low-Map-InstructionsColdweather-High
 BREAKPOINT (Test 1)
 ACTIVATION
-Map-High
+Low-Map-High
 DEACTIVATION
-InstructionsColdweather-Instructions-Low
+Instructions-InstructionsFloods
 BREAKPOINT (Test 2)
 ACTIVATION
 Instructions-InstructionsFloods
 DEACTIVATION
-High
+Low-High
 ACTIVATION
-InstructionsColdweather-Low
+InstructionsColdweather
 DEACTIVATION
 Map
 BREAKPOINT (Test 3)
@@ -30,14 +30,14 @@ DEACTIVATION
 InstructionsColdweather-Instructions-InstructionsFloods
 BREAKPOINT (Test 4)
 ACTIVATION
-InstructionsColdweather-Instructions-InstructionsFloods-High
+Low-InstructionsColdweather-Instructions-InstructionsFloods-High
 DEACTIVATION
-Map-Low
+Map
 BREAKPOINT (Test 5)
 ACTIVATION
-Map-Low
+Map
 DEACTIVATION
-InstructionsColdweather-Instructions-InstructionsFloods-High
+Low-InstructionsColdweather-Instructions-InstructionsFloods-High
 BREAKPOINT (Test 6)
 ACTIVATION
 Instructions-InstructionsFloods-High
@@ -45,27 +45,22 @@ DEACTIVATION
 Map
 BREAKPOINT (Test 7)
 ACTIVATION
-Map-InstructionsColdweather
+Low-Map-InstructionsColdweather
 DEACTIVATION
-InstructionsFloods-High-Low
+InstructionsFloods-High
 BREAKPOINT (Test 8)
 ACTIVATION
-InstructionsFloods-High-Low
+InstructionsFloods-High
 DEACTIVATION
-Map-InstructionsColdweather
+Low-InstructionsColdweather
 BREAKPOINT (Test 9)
 ACTIVATION
 InstructionsColdweather
 DEACTIVATION
-InstructionsFloods
+Map-InstructionsFloods
 BREAKPOINT (Test 10)
 ACTIVATION
-Map-InstructionsFloods
+Low-Map-InstructionsFloods
 DEACTIVATION
-High
+InstructionsColdweather
 BREAKPOINT (Test 11)
-ACTIVATION
-High
-DEACTIVATION
-InstructionsFloods
-BREAKPOINT (Test 12)
